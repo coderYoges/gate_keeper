@@ -6,7 +6,6 @@ export const DAILY_SESSION_LIMITS = {
 }
 
 export const SESSION_RULES = {
-  cooldownMs: 3 * 60 * 60 * 1000,
   depositMax: 15000,
   slotBetMax: 50,
   slotGamesMax: 3,

@@ -47,8 +47,8 @@ const RiskLimitTitle = styled.h3`
 `
 
 export function GamePlanStep({ values, errors, onChange }) {
-  const includeSlots = values.gameType === 'slots' || values.gameType === 'both'
-  const includeRoulette = values.gameType === 'roulette' || values.gameType === 'both'
+  const includeSlots = values.gameType === 'slots'
+  const includeRoulette = values.gameType === 'roulette'
   const stopLoss = Number(values.depositAmount) * SESSION_RULES.stopLossPercent
   const stopLossAmount = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(stopLoss)
 
@@ -66,7 +66,6 @@ export function GamePlanStep({ values, errors, onChange }) {
             <option value="">Select planned games</option>
             <option value="slots">Slots</option>
             <option value="roulette">Roulette</option>
-            <option value="both">Slots and roulette</option>
           </SelectInput>
           {errors.gameType && <ErrorMessage>{errors.gameType}</ErrorMessage>}
         </Field>
