@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ModalActions, ModalButton, ModalDialog, ModalOverlay } from './ModalPrimitives'
 
-export function SuccessModal({ message, onOkay }) {
+export function SuccessModal({ playerName, message, onOkay }) {
   const okayButtonRef = useRef(null)
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function SuccessModal({ message, onOkay }) {
       }}
     >
       <ModalDialog $tone="success" role="dialog" aria-modal="true" aria-labelledby="success-title" aria-describedby="success-message">
-        <h2 id="success-title">Checks passed</h2>
+        <h2 id="success-title">Hi, {playerName}!</h2>
         <p id="success-message">{message}</p>
         <ModalActions>
           <ModalButton ref={okayButtonRef} $primary $tone="success" type="button" onClick={onOkay}>Okay</ModalButton>

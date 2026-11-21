@@ -63,11 +63,13 @@ export const SESSION_RULES = {
 }
 
 export const SLOT_PLAY_STAGES = [
-  { plays: 10, amounts: [10, 12.5] },
-  { plays: 10, amounts: [20, 25] },
+  { plays: 10, amounts: [10] },
+  { plays: 10, amounts: [25] },
   { plays: 10, amounts: [40] },
   { plays: 10, amounts: [50] },
 ]
+
+export const MAX_SLOT_GAMES_PER_SESSION = 3
 
 export const SLOT_GAME_NAMES = [
   'Scrab Temple',

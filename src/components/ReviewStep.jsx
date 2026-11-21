@@ -63,6 +63,31 @@ const RiskSummaryItem = styled.div`
   }
 `
 
+const ReviewContinueButton = styled.button`
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0 0 auto;
+  padding: 0 16px;
+  border: 1px solid #c8f169;
+  border-radius: 7px;
+  background: #c8f169;
+  color: #17231e;
+  font-size: 12px;
+  font-weight: 650;
+
+  &:hover:not(:disabled) {
+    background: #d7f58e;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+`
+
 const Outcome = styled.div`
   display: flex;
   align-items: flex-start;
@@ -103,13 +128,16 @@ const OutcomeCopy = styled.div`
   }
 `
 
-export function ReviewStep({ values, outcome }) {
+export function ReviewStep({ values, outcome, onContinue, continueDisabled }) {
   const player = PLAYER_IDS.find((item) => item.playerId === values.playerId)
+  const completedSlotStages = (values.slotStageResults || []).filter((stage) => stage.status !== 'pending').length
   const gamePlan = {
-    slots: `Slots (${values.gameName}): ${values.playedGames.length}/40 instances tracked`,
+    slots: `Slots (${values.gameName}): ${completedSlotStages}/4 stake stages tracked`,
     roulette: `Roulette (${values.gameName}): base amount ₹${values.rouletteBase || '—'}`,
-    both: `${values.gameName}: ${values.playedGames.length}/40 slot instances; roulette base ₹${values.rouletteBase}`,
-  }[values.gameType] || '—'
+    both: `${values.gameName}: ${completedSlotStages}/4 slot stake stages; roulette base ₹${values.rouletteBase}`,
+  }[values.gameType] || ((values.completedGames || []).length
+    ? `${values.completedGames.length} game records saved`
+    : '—')
 
   const deposit = Number(values.depositAmount)
   const stopLoss = Number.isFinite(deposit) ? (deposit * SESSION_RULES.stopLossPercent).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0'
@@ -136,6 +164,9 @@ export function ReviewStep({ values, outcome }) {
         <RiskSummaryItem><strong>STOP LOSS</strong><span>Exit above 50% loss (₹{stopLoss})</span></RiskSummaryItem>
         <RiskSummaryItem><strong>STOP WIN</strong><span>Exit at ₹{SESSION_RULES.stopWin.toLocaleString('en-IN')} profit</span></RiskSummaryItem>
       </RiskSummary>
+      <ReviewContinueButton type="button" onClick={onContinue} disabled={continueDisabled}>
+        Continue <span aria-hidden="true">→</span>
+      </ReviewContinueButton>
       {outcome && (
         <Outcome role="status" aria-live="polite" $error={outcome.type === 'error'}>
           <OutcomeIcon $error={outcome.type === 'error'} aria-hidden="true">{outcome.type === 'error' ? '!' : '✓'}</OutcomeIcon>

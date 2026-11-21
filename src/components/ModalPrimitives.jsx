@@ -2,15 +2,19 @@ import styled from 'styled-components'
 
 export const ModalOverlay = styled.div`
   position: fixed;
-  z-index: 20;
+  z-index: 1000;
   inset: 0;
   display: grid;
   place-items: center;
   padding: 20px;
   background: rgb(4 8 6 / 78%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 `
 
 export const ModalDialog = styled.div`
+  position: relative;
+  z-index: 1;
   width: min(420px, 100%);
   padding: 25px;
   border: 1px solid ${({ $tone }) => ($tone === 'danger' ? '#a84f45' : $tone === 'success' ? '#668f45' : '#304037')};
@@ -57,4 +61,9 @@ export const ModalButton = styled.button`
   color: ${({ $primary }) => ($primary ? '#17231e' : '#adb8b0')};
   font-size: 12px;
   font-weight: 650;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 `

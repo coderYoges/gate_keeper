@@ -6,6 +6,7 @@ import { FailureModal } from './components/FailureModal'
 import { GamePlanStep } from './components/GamePlanStep'
 import { ReadinessStep } from './components/ReadinessStep'
 import { ReviewStep } from './components/ReviewStep'
+import { RiskWarningModal } from './components/RiskWarningModal'
 import { SuccessModal } from './components/SuccessModal'
 import { StepProgress } from './components/StepProgress'
 import { GlobalStyles } from './styles/GlobalStyles'
@@ -14,6 +15,7 @@ import {
   getDailyLimit,
   validateStep,
 } from './utils/sessionChecks'
+import { getSlotGameFinalBalance } from './utils/slotCalculations'
 
 const initialValues = {
   playerId: '',
@@ -25,19 +27,90 @@ const initialValues = {
   gameType: '',
   gameName: '',
   rouletteBase: '',
+  rouletteFinalBalance: '',
   playedGames: [],
+  slotStageResults: [],
+  gameStartingBalance: '',
+  slotRecordConfirmed: false,
+  rouletteRecordConfirmed: false,
+  editingCompletedGameIndex: null,
   completedGames: [],
   slotGameStopped: false,
 }
 
-function createPlayedGame(index, isSlot) {
-  const stage = SLOT_PLAY_STAGES[Math.floor(index / 10)]
+function createPlayedGame(index) {
   return {
     instance: String(index + 1),
-    amount: isSlot && stage ? String(stage.amounts[0]) : '',
+    amount: '',
     placed: '',
     status: 'pending',
   }
+}
+
+function createSlotStageResult(stage) {
+  return {
+    amount: String(stage.amounts[0]),
+    status: 'pending',
+    winInstance: '',
+    wonAmount: '',
+    finalBalance: '',
+  }
+}
+
+function getRecordedSlotStages(slotStageResults) {
+  const earlyWinIndex = slotStageResults.findIndex((stage) => (
+    stage.status === 'won' && stage.winInstance && Number(stage.winInstance) < 10
+  ))
+  return earlyWinIndex === -1 ? slotStageResults : slotStageResults.slice(0, earlyWinIndex + 1)
+}
+
+function getNextGameStartingBalance(completedGames, depositAmount) {
+  const previousGame = completedGames[completedGames.length - 1]
+  if (!previousGame) return depositAmount
+
+  const finalBalance = previousGame.finalBalance
+    ?? getSlotGameFinalBalance(previousGame.slotStageResults || [], previousGame.startingBalance ?? depositAmount)
+  const fallbackBalance = previousGame.startingBalance
+  return finalBalance === null
+    ? fallbackBalance === '' || fallbackBalance === null || fallbackBalance === undefined
+      ? depositAmount
+      : fallbackBalance
+    : String(finalBalance)
+}
+
+function createSlotGameRecord(values) {
+  const slotStageResults = getRecordedSlotStages(values.slotStageResults)
+  const startingBalance = values.gameStartingBalance || values.depositAmount
+  return {
+    gameType: 'slots',
+    gameName: values.gameName,
+    startingBalance,
+    finalBalance: getSlotGameFinalBalance(slotStageResults, startingBalance),
+    slotStageResults,
+  }
+}
+
+function recalculateCompletedGameBalances(completedGames, depositAmount) {
+  let startingBalance = depositAmount
+
+  return completedGames.map((game) => {
+    const finalBalance = game.gameType === 'slots'
+      ? getSlotGameFinalBalance(game.slotStageResults || [], startingBalance)
+      : game.finalBalance
+    const updatedGame = { ...game, startingBalance, finalBalance }
+    startingBalance = finalBalance ?? startingBalance
+    return updatedGame
+  })
+}
+
+function upsertCompletedGame(completedGames, record, editingIndex, depositAmount) {
+  const updatedGames = [...completedGames]
+  if (Number.isInteger(editingIndex) && editingIndex >= 0 && editingIndex < updatedGames.length) {
+    updatedGames[editingIndex] = record
+  } else {
+    updatedGames.push(record)
+  }
+  return recalculateCompletedGameBalances(updatedGames, depositAmount)
 }
 
 const Shell = styled.div`
@@ -399,6 +472,7 @@ export default function App() {
   const [outcome, setOutcome] = useState(null)
   const [failureMessage, setFailureMessage] = useState(null)
   const [successModalOpen, setSuccessModalOpen] = useState(false)
+  const [riskWarningOpen, setRiskWarningOpen] = useState(false)
   const dailyLimit = getDailyLimit()
   const cooldownStatus = getCooldownStatus(values.cooldownConfirmed)
 
@@ -414,9 +488,32 @@ export default function App() {
       ...(name === 'playerId' ? { playerDetailsConfirmed: false } : {}),
       ...(name === 'gameType' ? {
         gameName: '',
+        rouletteBase: '',
+        rouletteFinalBalance: '',
         playedGames: [],
-        completedGames: [],
+        slotStageResults: [],
+        gameStartingBalance: '',
+        slotRecordConfirmed: false,
+        rouletteRecordConfirmed: false,
         slotGameStopped: false,
+      } : {}),
+      ...(name === 'gameName' ? {
+        gameStartingBalance: value
+          ? getNextGameStartingBalance(current.completedGames, current.depositAmount)
+          : '',
+      } : {}),
+      ...(name === 'gameName' && current.gameType === 'slots' ? {
+        slotStageResults: value ? SLOT_PLAY_STAGES.map(createSlotStageResult) : [],
+        slotRecordConfirmed: false,
+        slotGameStopped: false,
+      } : {}),
+      ...(name === 'gameName' && current.gameType === 'roulette' ? {
+        playedGames: [],
+        rouletteFinalBalance: '',
+        rouletteRecordConfirmed: false,
+      } : {}),
+      ...(name === 'rouletteFinalBalance' ? {
+        rouletteRecordConfirmed: false,
       } : {}),
     }))
     setErrors({})
@@ -424,30 +521,134 @@ export default function App() {
     setSuccessModalOpen(false)
   }
 
+  function cancelEditCompletedGame() {
+    setValues((current) => ({
+      ...current,
+      editingCompletedGameIndex: null,
+      gameType: '',
+      gameName: '',
+      rouletteBase: '',
+      rouletteFinalBalance: '',
+      playedGames: [],
+      slotStageResults: [],
+      gameStartingBalance: '',
+      slotRecordConfirmed: false,
+      rouletteRecordConfirmed: false,
+      slotGameStopped: false,
+    }))
+    setErrors({})
+  }
+
   function updatePlayedGame(index, field, value) {
     setValues((current) => {
       const playedGames = current.playedGames.map((game, gameIndex) => (
         gameIndex === index ? { ...game, [field]: value } : game
       ))
-      const slotGameStopped = current.gameType === 'slots'
-        && playedGames.some((game, gameIndex) => game.status === 'won' && gameIndex % 10 < 9)
 
-      return { ...current, playedGames, slotGameStopped }
+      return { ...current, playedGames, rouletteRecordConfirmed: false }
     })
     setErrors({})
     setOutcome(null)
     setSuccessModalOpen(false)
   }
 
+  function updateSlotStage(index, field, value) {
+    setValues((current) => {
+      const slotStageResults = current.slotStageResults.map((stage, stageIndex) => (
+        stageIndex === index
+          ? field === 'status'
+            ? { ...stage, status: value, winInstance: '', wonAmount: '', finalBalance: '' }
+            : { ...stage, [field]: value }
+          : stage
+      ))
+      const slotGameStopped = slotStageResults.some((stage) => (
+        stage.status === 'won' && stage.winInstance && Number(stage.winInstance) < 10
+      ))
+
+      return { ...current, slotStageResults, slotRecordConfirmed: false, slotGameStopped }
+    })
+    setErrors({})
+    setOutcome(null)
+    setSuccessModalOpen(false)
+  }
+
+  function addSlotRecord() {
+    const error = getStepError(2, {
+      ...values,
+      allowEarlyWinRecord: true,
+      slotGameStopped: false,
+      slotRecordConfirmed: true,
+    }, dailyLimit)
+    setErrors(error ? { [error.field]: error.message } : {})
+    if (error) return false
+
+    setValues((current) => ({
+      ...current,
+      completedGames: upsertCompletedGame(
+        current.completedGames,
+        createSlotGameRecord(current),
+        current.editingCompletedGameIndex,
+        current.depositAmount,
+      ),
+      gameType: '',
+      gameName: '',
+      rouletteBase: '',
+      rouletteFinalBalance: '',
+      playedGames: [],
+      slotStageResults: [],
+      gameStartingBalance: '',
+      slotRecordConfirmed: false,
+      rouletteRecordConfirmed: false,
+      editingCompletedGameIndex: null,
+      slotGameStopped: false,
+    }))
+    return true
+  }
+
+  function addRouletteRecord() {
+    const error = getStepError(2, { ...values, rouletteRecordConfirmed: true }, dailyLimit)
+    setErrors(error ? { [error.field]: error.message } : {})
+    if (error) return false
+
+    setValues((current) => ({
+      ...current,
+      completedGames: upsertCompletedGame(
+        current.completedGames,
+        {
+          gameType: 'roulette',
+          gameName: current.gameName,
+          rouletteBase: current.rouletteBase,
+          startingBalance: current.gameStartingBalance || current.depositAmount,
+          finalBalance: Number(current.rouletteFinalBalance),
+          playedGames: current.playedGames,
+        },
+        current.editingCompletedGameIndex,
+        current.depositAmount,
+      ),
+      gameType: '',
+      gameName: '',
+      rouletteBase: '',
+      rouletteFinalBalance: '',
+      playedGames: [],
+      slotStageResults: [],
+      gameStartingBalance: '',
+      slotRecordConfirmed: false,
+      rouletteRecordConfirmed: false,
+      editingCompletedGameIndex: null,
+      slotGameStopped: false,
+    }))
+    return true
+  }
+
   function addPlayedGame() {
     setValues((current) => {
       const lastGame = current.playedGames[current.playedGames.length - 1]
-      if (!current.gameName.trim() || current.slotGameStopped || current.playedGames.length >= 40) return current
+      if (current.gameType !== 'roulette' || !current.gameName.trim() || current.playedGames.length >= 40) return current
       if (lastGame && (lastGame.status === 'pending' || !lastGame.placed.trim())) return current
 
       return {
         ...current,
-        playedGames: [...current.playedGames, createPlayedGame(current.playedGames.length, current.gameType === 'slots')],
+        playedGames: [...current.playedGames, createPlayedGame(current.playedGames.length)],
       }
     })
     setErrors({})
@@ -459,25 +660,57 @@ export default function App() {
     setValues((current) => {
       if (index !== current.playedGames.length - 1) return current
       const playedGames = current.playedGames.slice(0, -1)
-      const slotGameStopped = current.gameType === 'slots'
-        && playedGames.some((game, gameIndex) => game.status === 'won' && gameIndex % 10 < 9)
-      return { ...current, playedGames, slotGameStopped }
+      return { ...current, playedGames }
     })
     setErrors({})
     setOutcome(null)
     setSuccessModalOpen(false)
   }
 
-  function startNewSlotGame() {
-    setValues((current) => ({
-      ...current,
-      completedGames: current.gameName && current.playedGames.length
-        ? [...current.completedGames, { gameName: current.gameName, playedGames: current.playedGames }]
-        : current.completedGames,
-      gameName: '',
-      playedGames: [],
-      slotGameStopped: false,
-    }))
+  function removeCompletedGame(index) {
+    setValues((current) => {
+      if (index < 0 || index >= current.completedGames.length) return current
+      const completedGames = current.completedGames.filter((_, gameIndex) => gameIndex !== index)
+      return {
+        ...current,
+        completedGames: recalculateCompletedGameBalances(completedGames, current.depositAmount),
+        editingCompletedGameIndex: Number.isInteger(current.editingCompletedGameIndex)
+          ? current.editingCompletedGameIndex > index
+            ? current.editingCompletedGameIndex - 1
+            : current.editingCompletedGameIndex === index
+              ? null
+              : current.editingCompletedGameIndex
+          : null,
+      }
+    })
+    setErrors({})
+    setOutcome(null)
+    setSuccessModalOpen(false)
+  }
+
+  function editCompletedGame(index) {
+    setValues((current) => {
+      const record = current.completedGames[index]
+      if (!record) return current
+      const slotStageResults = record.slotStageResults || []
+
+      return {
+        ...current,
+        editingCompletedGameIndex: index,
+        gameType: record.gameType,
+        gameName: record.gameName,
+        rouletteBase: record.rouletteBase || '',
+        rouletteFinalBalance: record.gameType === 'roulette' ? String(record.finalBalance) : '',
+        playedGames: record.playedGames || [],
+        slotStageResults,
+        gameStartingBalance: String(record.startingBalance ?? current.depositAmount),
+        slotRecordConfirmed: false,
+        rouletteRecordConfirmed: false,
+        slotGameStopped: slotStageResults.some((stage) => (
+          stage.status === 'won' && stage.winInstance && Number(stage.winInstance) < 10
+        )),
+      }
+    })
     setErrors({})
     setOutcome(null)
     setSuccessModalOpen(false)
@@ -496,17 +729,43 @@ export default function App() {
     setOutcome(null)
     setFailureMessage(null)
     setSuccessModalOpen(false)
+    setRiskWarningOpen(false)
   }
 
   function advance() {
     const error = validateCurrentStep(currentStep)
     if (error) {
-      if (error.field === 'playedGames' || error.field === 'slotGameStopped') return
+      if (['playedGames', 'rouletteFinalBalance', 'slotGameStopped', 'slotStageResults'].includes(error.field)) return
       setFailureMessage(error.message)
+      return
+    }
+    if (currentStep === 1) {
+      setRiskWarningOpen(true)
       return
     }
     setOutcome(null)
     setCurrentStep((step) => Math.min(step + 1, STEP_LABELS.length - 1))
+  }
+
+  function proceedFromRiskWarning() {
+    setRiskWarningOpen(false)
+    setOutcome(null)
+    setCurrentStep(2)
+  }
+
+  function continueFromReview() {
+    const error = validateCurrentStep(currentStep)
+    if (error) {
+      setFailureMessage(error.message)
+      return
+    }
+
+    setErrors({})
+    setOutcome({
+      type: 'success',
+      message: 'You have completed your game session plan as planned. It is a pleasure to have you!',
+    })
+    setSuccessModalOpen(true)
   }
 
   function handleSubmit(event) {
@@ -517,23 +776,13 @@ export default function App() {
       return
     }
 
-    const error = validateCurrentStep(currentStep)
-    if (error) {
-      setFailureMessage(error.message)
-      return
-    }
-
-    setErrors({})
-    setOutcome({
-      type: 'success',
-      message: 'The 3-hour rule passed using the last-session time you entered.',
-    })
-    setSuccessModalOpen(true)
+    continueFromReview()
   }
 
   function goBack() {
     setOutcome(null)
     setSuccessModalOpen(false)
+    setRiskWarningOpen(false)
     setErrors({})
     setCurrentStep((step) => Math.max(step - 1, 0))
   }
@@ -542,6 +791,7 @@ export default function App() {
     if (step >= currentStep) return
     setOutcome(null)
     setSuccessModalOpen(false)
+    setRiskWarningOpen(false)
     setErrors({})
     setCurrentStep(step)
   }
@@ -555,11 +805,22 @@ export default function App() {
       errors={errors}
       onChange={handleChange}
       onPlayedGameChange={updatePlayedGame}
+      onSlotStageChange={updateSlotStage}
+      onAddSlotRecord={addSlotRecord}
+      onAddRouletteRecord={addRouletteRecord}
       onAddPlayedGame={addPlayedGame}
       onRemovePlayedGame={removePlayedGame}
-      onStartNewSlotGame={startNewSlotGame}
+      onRemoveCompletedGame={removeCompletedGame}
+      onEditCompletedGame={editCompletedGame}
+      onCancelCompletedGameEdit={cancelEditCompletedGame}
     />,
-    <ReviewStep key="review" values={values} outcome={outcome} />,
+    <ReviewStep
+      key="review"
+      values={values}
+      outcome={outcome}
+      onContinue={continueFromReview}
+      continueDisabled={outcome?.type === 'success'}
+    />,
   ][currentStep]
 
   return (
@@ -572,8 +833,18 @@ export default function App() {
           onOkay={resetForm}
         />
       )}
+      {riskWarningOpen && (
+        <RiskWarningModal
+          onCancel={() => setRiskWarningOpen(false)}
+          onProceed={proceedFromRiskWarning}
+        />
+      )}
       {successModalOpen && outcome?.type === 'success' && (
-        <SuccessModal message={outcome.message} onOkay={() => setSuccessModalOpen(false)} />
+        <SuccessModal
+          playerName={PLAYER_IDS.find((player) => player.playerId === values.playerId)?.playerName || 'there'}
+          message={outcome.message}
+          onOkay={() => window.location.reload()}
+        />
       )}
       <Shell id="top">
         <Topbar>
@@ -605,15 +876,15 @@ export default function App() {
               <Form onSubmit={handleSubmit} noValidate>
                 <StepPanel key={currentStep}>{stepContent}</StepPanel>
                 <FormFooter>
-                  <BackButton type="button" onClick={goBack} disabled={currentStep === 0}><span aria-hidden="true">←</span> Back</BackButton>
+                  {currentStep < STEP_LABELS.length - 1 && (
+                    <BackButton type="button" onClick={goBack} disabled={currentStep === 0}>
+                      <span aria-hidden="true">←</span> Back
+                    </BackButton>
+                  )}
                   <FooterCaption>CHECKS ARE BASED ON YOUR ANSWERS</FooterCaption>
                   {currentStep < STEP_LABELS.length - 1 ? (
                     <PrimaryButton type="button" onClick={advance}>Continue <span aria-hidden="true">→</span></PrimaryButton>
-                  ) : (
-                    <PrimaryButton type="submit" disabled={outcome?.type === 'success'}>
-                      {outcome?.type === 'success' ? 'Checks passed' : 'Start session'} <span aria-hidden="true">↗</span>
-                    </PrimaryButton>
-                  )}
+                  ) : null}
                 </FormFooter>
               </Form>
             </FlowCard>
