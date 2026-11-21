@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import styled from 'styled-components'
-import { PLAYER_IDS, SLOT_PLAY_STAGES, STEP_LABELS } from './constants'
+import { PLAYER_IDS, getSlotPlayStages, STEP_LABELS } from './constants'
 import { DailyLimitsStep } from './components/DailyLimitsStep'
 import { FailureModal } from './components/FailureModal'
 import { GamePlanStep } from './components/GamePlanStep'
@@ -20,8 +20,11 @@ import { getSlotGameFinalBalance } from './utils/slotCalculations'
 const initialValues = {
   playerId: '',
   playerDetailsConfirmed: false,
+  mobileDataConfirmed: false,
+  differentSimConfirmed: false,
   mentalState: '',
   sessionsToday: '',
+  existingBalance: false,
   depositAmount: '',
   cooldownConfirmed: false,
   gameType: '',
@@ -69,7 +72,11 @@ function getNextGameStartingBalance(completedGames, depositAmount) {
   if (!previousGame) return depositAmount
 
   const finalBalance = previousGame.finalBalance
-    ?? getSlotGameFinalBalance(previousGame.slotStageResults || [], previousGame.startingBalance ?? depositAmount)
+    ?? getSlotGameFinalBalance(
+      previousGame.slotStageResults || [],
+      previousGame.startingBalance ?? depositAmount,
+      previousGame.gameName,
+    )
   const fallbackBalance = previousGame.startingBalance
   return finalBalance === null
     ? fallbackBalance === '' || fallbackBalance === null || fallbackBalance === undefined
@@ -85,7 +92,7 @@ function createSlotGameRecord(values) {
     gameType: 'slots',
     gameName: values.gameName,
     startingBalance,
-    finalBalance: getSlotGameFinalBalance(slotStageResults, startingBalance),
+    finalBalance: getSlotGameFinalBalance(slotStageResults, startingBalance, values.gameName),
     slotStageResults,
   }
 }
@@ -95,7 +102,7 @@ function recalculateCompletedGameBalances(completedGames, depositAmount) {
 
   return completedGames.map((game) => {
     const finalBalance = game.gameType === 'slots'
-      ? getSlotGameFinalBalance(game.slotStageResults || [], startingBalance)
+      ? getSlotGameFinalBalance(game.slotStageResults || [], startingBalance, game.gameName)
       : game.finalBalance
     const updatedGame = { ...game, startingBalance, finalBalance }
     startingBalance = finalBalance ?? startingBalance
@@ -503,7 +510,7 @@ export default function App() {
           : '',
       } : {}),
       ...(name === 'gameName' && current.gameType === 'slots' ? {
-        slotStageResults: value ? SLOT_PLAY_STAGES.map(createSlotStageResult) : [],
+        slotStageResults: value ? getSlotPlayStages(value).map(createSlotStageResult) : [],
         slotRecordConfirmed: false,
         slotGameStopped: false,
       } : {}),

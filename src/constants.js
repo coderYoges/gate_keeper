@@ -62,20 +62,25 @@ export const SESSION_RULES = {
   stopWin: 1000,
 }
 
-export const SLOT_PLAY_STAGES = [
-  { plays: 10, amounts: [10] },
-  { plays: 10, amounts: [25] },
-  { plays: 10, amounts: [40] },
-  { plays: 10, amounts: [50] },
-]
+export const SLOT_STAKE_AMOUNTS_BY_GAME = {
+  'Scarab Temple': [12.5, 25, 40, 50],
+  '777 Burning wins': [10, 20, 25, 40, 50],
+  'Inferno 777 Speed': [10, 15, 20, 25, 30, 35, 40, 50],
+  'Diamond Jokers': [10, 15, 20, 25, 40, 50],
+}
+
+export function getSlotPlayStages(gameName) {
+  const amounts = SLOT_STAKE_AMOUNTS_BY_GAME[gameName] || [10, 25, 40, 50]
+  return amounts.map((amount) => ({ plays: 10, amounts: [amount] }))
+}
 
 export const MAX_SLOT_GAMES_PER_SESSION = 3
 
 export const SLOT_GAME_NAMES = [
-  'Scrab Temple',
+  'Scarab Temple',
   '777 Burning wins',
   'Diamond Jokers',
-  'Inferno 777',
+  'Inferno 777 Speed',
 ]
 
 export const ROULETTE_GAME_NAMES = [

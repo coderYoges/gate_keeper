@@ -3,7 +3,7 @@ import {
   MAX_SLOT_GAMES_PER_SESSION,
   PLAYER_IDS,
   SESSION_RULES,
-  SLOT_PLAY_STAGES,
+  getSlotPlayStages,
 } from '../constants.js'
 import { getGameReturnedAmount } from './sessionCalculations.js'
 
@@ -54,6 +54,12 @@ export function validateStep(step, values, dailyLimit) {
     if (!values.playerDetailsConfirmed) {
       return { field: 'playerDetailsConfirmed', message: 'Confirm that the device and location shown match your profile.' }
     }
+    if (!values.mobileDataConfirmed) {
+      return { field: 'mobileDataConfirmed', message: 'Confirm that you are using mobile data only, without Wi-Fi or a hotspot.' }
+    }
+    if (!values.differentSimConfirmed) {
+      return { field: 'differentSimConfirmed', message: 'Confirm that you are not using the SIM card used by the previous user.' }
+    }
     if (!values.mentalState) {
       return { field: 'mentalState', message: 'Select how you are feeling before continuing.' }
     }
@@ -74,6 +80,9 @@ export function validateStep(step, values, dailyLimit) {
     const deposit = Number(values.depositAmount)
     if (!Number.isInteger(deposit) || deposit <= 0) {
       return { field: 'depositAmount', message: 'Enter a whole-rupee deposit greater than ₹0.' }
+    }
+    if (values.existingBalance && deposit < 300) {
+      return { field: 'depositAmount', message: 'Enter a deposit of at least ₹300 when your account already has a balance.' }
     }
     if (deposit > SESSION_RULES.depositMax) {
       return { field: 'depositAmount', message: 'The deposit limit is ₹15,000 per user per session.' }
@@ -131,31 +140,33 @@ export function validateStep(step, values, dailyLimit) {
       if (values.slotGameStopped && !values.allowEarlyWinRecord) {
         return { field: 'slotGameStopped', message: 'Start a new slot game after recording an early win.' }
       }
-      if (values.slotStageResults.length !== SLOT_PLAY_STAGES.length) {
+      const slotStages = getSlotPlayStages(values.gameName)
+      if (values.slotStageResults.length !== slotStages.length) {
         return { field: 'slotStageResults', message: 'Record an outcome for each slot stake stage.' }
       }
       for (let index = 0; index < values.slotStageResults.length; index += 1) {
         const stageResult = values.slotStageResults[index]
+        const stage = slotStages[index]
         if (stageResult.status === 'won') {
           const winInstance = Number(stageResult.winInstance)
           const wonAmount = Number(stageResult.wonAmount)
-          if (!Number.isInteger(winInstance) || winInstance < 1 || winInstance > SLOT_PLAY_STAGES[index].plays) {
-            return { field: 'slotStageResults', message: `Enter the winning instance from 1 to 10 for the ₹${SLOT_PLAY_STAGES[index].amounts[0]} stage.` }
+          if (!Number.isInteger(winInstance) || winInstance < 1 || winInstance > stage.plays) {
+            return { field: 'slotStageResults', message: `Enter the winning instance from 1 to 10 for the ₹${stage.amounts[0]} stage.` }
           }
           if (stageResult.wonAmount === '' || !Number.isFinite(wonAmount) || wonAmount < 0) {
-            return { field: 'slotStageResults', message: `Enter the won amount for the ₹${SLOT_PLAY_STAGES[index].amounts[0]} stage.` }
+            return { field: 'slotStageResults', message: `Enter the won amount for the ₹${stage.amounts[0]} stage.` }
           }
-          if (winInstance < SLOT_PLAY_STAGES[index].plays) {
+          if (winInstance < stage.plays) {
             if (values.allowEarlyWinRecord) break
             return { field: 'slotGameStopped', message: 'A win before completing a 10-play stage requires starting a new slot game.' }
           }
         } else if (stageResult.status === 'lost') {
           const finalBalance = Number(stageResult.finalBalance)
           if (stageResult.finalBalance === '' || !Number.isFinite(finalBalance) || finalBalance < 0) {
-            return { field: 'slotStageResults', message: `Enter the final balance for the ₹${SLOT_PLAY_STAGES[index].amounts[0]} stage.` }
+            return { field: 'slotStageResults', message: `Enter the final balance for the ₹${stage.amounts[0]} stage.` }
           }
         } else {
-          return { field: 'slotStageResults', message: `Choose won or lost for the ₹${SLOT_PLAY_STAGES[index].amounts[0]} stage.` }
+          return { field: 'slotStageResults', message: `Choose won or lost for the ₹${stage.amounts[0]} stage.` }
         }
       }
       if (!values.slotRecordConfirmed) {

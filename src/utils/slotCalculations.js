@@ -1,12 +1,12 @@
-import { SLOT_PLAY_STAGES } from '../constants.js'
+import { getSlotPlayStages } from '../constants.js'
 
-export function getSlotStageBalances(stageResults, initialBalance) {
+export function getSlotStageBalances(stageResults, initialBalance, gameName) {
   let balance = initialBalance === '' || initialBalance === null || initialBalance === undefined
     ? null
     : Number(initialBalance)
   if (!Number.isFinite(balance)) balance = null
 
-  return SLOT_PLAY_STAGES.map((stage, index) => {
+  return getSlotPlayStages(gameName).map((stage, index) => {
     const result = stageResults[index]
     const winInstance = Number(result?.winInstance)
     const playedCount = result?.status === 'won'
@@ -30,7 +30,7 @@ export function getSlotStageBalances(stageResults, initialBalance) {
   })
 }
 
-export function getSlotGameFinalBalance(stageResults, startingBalance) {
+export function getSlotGameFinalBalance(stageResults, startingBalance, gameName) {
   if (stageResults.length === 0) return null
-  return getSlotStageBalances(stageResults, startingBalance)[stageResults.length - 1]?.finalBalance ?? null
+  return getSlotStageBalances(stageResults, startingBalance, gameName)[stageResults.length - 1]?.finalBalance ?? null
 }

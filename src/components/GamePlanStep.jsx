@@ -25,7 +25,8 @@ import {
   ROULETTE_GAME_NAMES,
   SESSION_RULES,
   SLOT_GAME_NAMES,
-  SLOT_PLAY_STAGES,
+  SLOT_STAKE_AMOUNTS_BY_GAME,
+  getSlotPlayStages,
 } from '../constants'
 import {
   getGameReturnedAmount,
@@ -423,6 +424,8 @@ export function GamePlanStep({
   const includeRoulette = values.gameType === 'roulette'
   const playedGames = values.playedGames || []
   const slotStageResults = values.slotStageResults || []
+  const slotStakeAmounts = SLOT_STAKE_AMOUNTS_BY_GAME[values.gameName] || []
+  const slotStages = slotStakeAmounts.map((amount) => ({ plays: 10, amounts: [amount] }))
   const completedGames = values.completedGames || []
   const completedSlotCount = completedGames.filter((game) => game.gameType === 'slots').length
   const lastCompletedGame = completedGames[completedGames.length - 1]
@@ -444,6 +447,7 @@ export function GamePlanStep({
   const slotStageBalances = getSlotStageBalances(
     slotStageResults,
     values.gameStartingBalance || values.depositAmount,
+    values.gameName,
   )
   const lastPlayedGame = playedGames[playedGames.length - 1]
   const hasRecordedActivity = includeSlots
@@ -479,8 +483,8 @@ export function GamePlanStep({
   const isEditingCompletedGame = Number.isInteger(values.editingCompletedGameIndex)
   const slotsInvested = completedGames
     .filter((game) => game.gameType === 'slots')
-    .reduce((total, game) => total + getSlotInvestment(game.slotStageResults || []), 0)
-    + (includeSlots ? getSlotInvestment(slotStageResults) : 0)
+    .reduce((total, game) => total + getSlotInvestment(game.slotStageResults || [], game.gameName), 0)
+    + (includeSlots ? getSlotInvestment(slotStageResults, values.gameName) : 0)
   const rouletteInvested = completedGames
     .filter((game) => game.gameType === 'roulette')
     .reduce((total, game) => total + getRouletteInvestment(game.playedGames || []), 0)
@@ -697,7 +701,7 @@ export function GamePlanStep({
               const depositReturned = Number(values.depositAmount) > 0
                 && getTotalReturnedAmount(completedGames.slice(0, gameIndex + 1)) >= Number(values.depositAmount)
               const balances = isSlotRecord
-                ? getSlotStageBalances(stageResults, completedGame.startingBalance ?? values.depositAmount)
+                ? getSlotStageBalances(stageResults, completedGame.startingBalance ?? values.depositAmount, completedGame.gameName)
                 : []
 
               return (
@@ -710,14 +714,13 @@ export function GamePlanStep({
                   </summary>
                   {isSlotRecord ? stageResults.map((stageResult, index) => {
                     if (stageResult.status === 'pending') return null
-                    const stage = SLOT_PLAY_STAGES[index]
                     const outcome = stageResult.status === 'won'
                       ? `Won · instance ${stageResult.winInstance} · Gross payout ${formatBalance(Number(stageResult.wonAmount))}`
                       : 'Loss'
 
                     return (
                       <SavedSlotDetailRow key={index}>
-                        <strong>Stage {index + 1} · Entry amount {formatBalance(balances[index].entryAmount)}</strong>
+                        <strong>Stage {index + 1} · Stake ₹{(SLOT_STAKE_AMOUNTS_BY_GAME[completedGame.gameName] || [10, 25, 40, 50])[index]} · Entry amount {formatBalance(balances[index].entryAmount)}</strong>
                         <span>{outcome} · Final balance {formatBalance(balances[index].finalBalance)}</span>
                       </SavedSlotDetailRow>
                     )
@@ -805,8 +808,13 @@ export function GamePlanStep({
                 </TrackerNotice>
                 {errors.slotGameStopped && <ErrorMessage role="alert">{errors.slotGameStopped}</ErrorMessage>}
                 {errors.slotStageResults && <ErrorMessage role="alert">{errors.slotStageResults}</ErrorMessage>}
-                {slotStageResults.map((stageResult, index) => {
-                  const stage = SLOT_PLAY_STAGES[index]
+                {slotStages.map((stage, index) => {
+                  const stageResult = slotStageResults[index] || {
+                    status: 'pending',
+                    winInstance: '',
+                    wonAmount: '',
+                    finalBalance: '',
+                  }
                   const stoppedStageIndex = slotStageResults.findIndex((result) => (
                     result.status === 'won' && result.winInstance && Number(result.winInstance) < stage.plays
                   ))

@@ -58,6 +58,36 @@ export function ReadinessStep({ playerIds, values, errors, onChange }) {
           </Field>
         )}
         <Field $wide>
+          <ChoiceCard>
+            <Checkbox
+              name="mobileDataConfirmed"
+              checked={values.mobileDataConfirmed}
+              onChange={onChange}
+              aria-invalid={Boolean(errors.mobileDataConfirmed)}
+            />
+            <span>
+              <strong>Are you using mobile data only?</strong>
+              <small>Do not use a hotspot or Wi-Fi connection.</small>
+            </span>
+          </ChoiceCard>
+          {errors.mobileDataConfirmed && <ErrorMessage role="alert">{errors.mobileDataConfirmed}</ErrorMessage>}
+        </Field>
+        <Field $wide>
+          <ChoiceCard>
+            <Checkbox
+              name="differentSimConfirmed"
+              checked={values.differentSimConfirmed}
+              onChange={onChange}
+              aria-invalid={Boolean(errors.differentSimConfirmed)}
+            />
+            <span>
+              <strong>Are you using a different SIM card from the previous user?</strong>
+              <small>Do not use the SIM card used by the previous user.</small>
+            </span>
+          </ChoiceCard>
+          {errors.differentSimConfirmed && <ErrorMessage role="alert">{errors.differentSimConfirmed}</ErrorMessage>}
+        </Field>
+        <Field $wide>
           <FieldLabel htmlFor="mental-state">Mental and emotional check <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
           <SelectInput id="mental-state" name="mentalState" value={values.mentalState} onChange={onChange} required aria-invalid={Boolean(errors.mentalState)}>
             <option value="">Choose the statement that fits</option>

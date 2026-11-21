@@ -44,13 +44,29 @@ export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, on
           <TextInput id="sessions-today" name="sessionsToday" type="number" min="1" max={dailyLimit} step="1" placeholder="1" inputMode="numeric" value={values.sessionsToday} onChange={onChange} aria-invalid={Boolean(errors.sessionsToday)} required />
           {errors.sessionsToday ? <ErrorMessage>{errors.sessionsToday}</ErrorMessage> : <Hint>Today’s limit: {dailyLimit} sessions.</Hint>}
         </Field>
+        <Field $wide>
+          <ChoiceCard>
+            <Checkbox
+              id="existing-balance"
+              name="existingBalance"
+              checked={values.existingBalance}
+              onChange={onChange}
+            />
+            <span>
+              <strong>There is already a balance in my account</strong>
+              <small>If checked, deposit at least ₹300 for this session.</small>
+            </span>
+          </ChoiceCard>
+        </Field>
         <Field>
           <FieldLabel htmlFor="deposit-amount">Deposit for this session <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
           <InputGroup>
             <CurrencyPrefix>₹</CurrencyPrefix>
-            <TextInput id="deposit-amount" name="depositAmount" type="number" min="1" max="15000" step="1" placeholder="0" inputMode="numeric" value={values.depositAmount} onChange={onChange} aria-invalid={Boolean(errors.depositAmount)} required />
+            <TextInput id="deposit-amount" name="depositAmount" type="number" min={values.existingBalance ? '300' : '1'} max="15000" step="1" placeholder="0" inputMode="numeric" value={values.depositAmount} onChange={onChange} aria-invalid={Boolean(errors.depositAmount)} required />
           </InputGroup>
-          {errors.depositAmount ? <ErrorMessage>{errors.depositAmount}</ErrorMessage> : <Hint>Maximum deposit: ₹15,000 per user per session.</Hint>}
+          {errors.depositAmount
+            ? <ErrorMessage>{errors.depositAmount}</ErrorMessage>
+            : <Hint>{values.existingBalance ? 'Minimum deposit: ₹300. ' : ''}Maximum deposit: ₹15,000 per user per session.</Hint>}
         </Field>
         <Field $wide>
           <FieldLabel>3-hour cooling period <RequiredTag>REQUIRED</RequiredTag></FieldLabel>

@@ -1,9 +1,9 @@
-import { SLOT_PLAY_STAGES } from '../constants.js'
+import { getSlotPlayStages } from '../constants.js'
 import { getSlotStageBalances } from './slotCalculations.js'
 
-export function getSlotInvestment(stageResults) {
+export function getSlotInvestment(stageResults, gameName) {
   return stageResults.reduce((total, result, index) => {
-    const stage = SLOT_PLAY_STAGES[index]
+    const stage = getSlotPlayStages(gameName)[index]
     if (!stage) return total
     if (result.status === 'lost') return total + stage.plays * stage.amounts[0]
     if (result.status !== 'won') return total
@@ -25,7 +25,7 @@ export function getRouletteInvestment(playedGames) {
 export function getGameReturnedAmount(game) {
   if (game.gameType === 'slots') {
     const results = game.slotStageResults || []
-    const balances = getSlotStageBalances(results, game.startingBalance)
+    const balances = getSlotStageBalances(results, game.startingBalance, game.gameName)
 
     return results.reduce((total, result, index) => {
       if (result.status === 'won') {
