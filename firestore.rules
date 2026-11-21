@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function ownsUser(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function validSessionRecord() {
+      return request.resource.data.keys().hasAll([
+          'playerId',
+          'sessionNumber',
+          'existingBalance',
+          'depositAmount',
+          'cooldownConfirmed',
+          'mobileDataConfirmed',
+          'differentSimConfirmed',
+          'games',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'playerId',
+          'sessionNumber',
+          'existingBalance',
+          'depositAmount',
+          'cooldownConfirmed',
+          'mobileDataConfirmed',
+          'differentSimConfirmed',
+          'games',
+          'createdAt'
+        ])
+        && request.resource.data.playerId is string
+        && request.resource.data.sessionNumber is number
+        && request.resource.data.existingBalance is bool
+        && request.resource.data.depositAmount is number
+        && request.resource.data.depositAmount > 0
+        && request.resource.data.depositAmount <= 15000
+        && (!request.resource.data.existingBalance || request.resource.data.depositAmount >= 300)
+        && request.resource.data.cooldownConfirmed == true
+        && request.resource.data.mobileDataConfirmed == true
+        && request.resource.data.differentSimConfirmed == true
+        && request.resource.data.games is list
+        && request.resource.data.games.size() > 0
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    match /users/{userId}/sessions/{sessionId} {
+      allow get, list: if ownsUser(userId);
+      allow create, update: if ownsUser(userId) && validSessionRecord();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

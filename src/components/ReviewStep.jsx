@@ -4,6 +4,7 @@ import {
   PanelHeading,
   PanelKicker,
   PanelTitle,
+  ErrorMessage,
 } from './FormPrimitives'
 import { PLAYER_IDS, SLOT_STAKE_AMOUNTS_BY_GAME } from '../constants'
 
@@ -61,7 +62,7 @@ const ReviewContinueButton = styled.button`
   }
 `
 
-export function ReviewStep({ values, outcome, onContinue, continueDisabled }) {
+export function ReviewStep({ values, outcome, onContinue, continueDisabled, saving, saveError }) {
   const player = PLAYER_IDS.find((item) => item.playerId === values.playerId)
   const completedSlotStages = (values.slotStageResults || []).filter((stage) => stage.status !== 'pending').length
   const totalSlotStages = SLOT_STAKE_AMOUNTS_BY_GAME[values.gameName]?.length || 0
@@ -93,8 +94,9 @@ export function ReviewStep({ values, outcome, onContinue, continueDisabled }) {
         <ReviewRow><ReviewLabel>3-HOUR COOLING PERIOD</ReviewLabel><ReviewValue>{values.cooldownConfirmed ? 'Confirmed by you' : 'Not confirmed'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>GAME PLAN</ReviewLabel><ReviewValue>{gamePlan}</ReviewValue></ReviewRow>
       </ReviewList>
+      {saveError && <ErrorMessage role="alert">{saveError}</ErrorMessage>}
       <ReviewContinueButton type="button" onClick={onContinue} disabled={continueDisabled}>
-        Continue <span aria-hidden="true">→</span>
+        {saving ? 'Saving session…' : 'Save session'} <span aria-hidden="true">→</span>
       </ReviewContinueButton>
     </section>
   )

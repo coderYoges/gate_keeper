@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
+import { onAuthStateChanged } from 'firebase/auth'
 import { PLAYER_IDS, getSlotPlayStages, STEP_LABELS } from './constants'
 import { DailyLimitsStep } from './components/DailyLimitsStep'
 import { FailureModal } from './components/FailureModal'
+import { FirebaseGoogleSignIn } from './components/FirebaseGoogleSignIn'
 import { GamePlanStep } from './components/GamePlanStep'
 import { ReadinessStep } from './components/ReadinessStep'
 import { ReviewStep } from './components/ReviewStep'
@@ -10,6 +12,7 @@ import { RiskWarningModal } from './components/RiskWarningModal'
 import { SuccessModal } from './components/SuccessModal'
 import { StepProgress } from './components/StepProgress'
 import { GlobalStyles } from './styles/GlobalStyles'
+import { auth, saveSessionRecord } from './firebase'
 import {
   getCooldownStatus,
   getDailyLimit,
@@ -474,14 +477,35 @@ function getStepError(step, values, dailyLimit) {
 
 export default function App() {
   const [values, setValues] = useState(initialValues)
+  const [firebaseUser, setFirebaseUser] = useState(null)
+  const [authReady, setAuthReady] = useState(false)
+  const [authStateError, setAuthStateError] = useState('')
+  const [savingSession, setSavingSession] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
   const [errors, setErrors] = useState({})
   const [outcome, setOutcome] = useState(null)
   const [failureMessage, setFailureMessage] = useState(null)
   const [successModalOpen, setSuccessModalOpen] = useState(false)
   const [riskWarningOpen, setRiskWarningOpen] = useState(false)
+  const saveInProgressRef = useRef(false)
+  const sessionIdRef = useRef(null)
   const dailyLimit = getDailyLimit()
   const cooldownStatus = getCooldownStatus(values.cooldownConfirmed)
+
+  useEffect(() => onAuthStateChanged(
+    auth,
+    (user) => {
+      setFirebaseUser(user)
+      setAuthStateError('')
+      setAuthReady(true)
+    },
+    (error) => {
+      console.error('Firebase authentication state could not be loaded.', error)
+      setAuthStateError('Could not check the existing Firebase sign-in. Reload and try again.')
+      setAuthReady(true)
+    },
+  ), [])
 
   function handleChange(event) {
     const { name, type, checked, value } = event.currentTarget
@@ -760,7 +784,9 @@ export default function App() {
     setCurrentStep(2)
   }
 
-  function continueFromReview() {
+  async function continueFromReview() {
+    if (saveInProgressRef.current) return
+
     const error = validateCurrentStep(currentStep)
     if (error) {
       setFailureMessage(error.message)
@@ -768,11 +794,57 @@ export default function App() {
     }
 
     setErrors({})
-    setOutcome({
-      type: 'success',
-      message: 'You have completed your game session plan as planned. It is a pleasure to have you!',
-    })
-    setSuccessModalOpen(true)
+    setSaveError('')
+    if (!authReady) {
+      setSaveError('Firebase is still checking your sign-in. Please try again in a moment.')
+      return
+    }
+    if (!firebaseUser) {
+      setSaveError(authStateError || 'No existing Firebase sign-in was found. Sign in with your configured provider, then try saving again.')
+      return
+    }
+
+    saveInProgressRef.current = true
+    setSavingSession(true)
+    try {
+      if (!sessionIdRef.current) sessionIdRef.current = crypto.randomUUID()
+
+      await saveSessionRecord(firebaseUser.uid, {
+        sessionId: sessionIdRef.current,
+        playerId: values.playerId,
+        sessionNumber: Number(values.sessionsToday),
+        existingBalance: Boolean(values.existingBalance),
+        depositAmount: Number(values.depositAmount),
+        cooldownConfirmed: Boolean(values.cooldownConfirmed),
+        mobileDataConfirmed: Boolean(values.mobileDataConfirmed),
+        differentSimConfirmed: Boolean(values.differentSimConfirmed),
+        games: values.completedGames.map((game) => ({
+          gameType: game.gameType,
+          gameName: game.gameName,
+          startingBalance: game.startingBalance ?? null,
+          finalBalance: game.finalBalance ?? null,
+          rouletteBase: game.rouletteBase ?? null,
+          playedGames: game.playedGames || [],
+          slotStageResults: game.slotStageResults || [],
+        })),
+      })
+
+      setOutcome({
+        type: 'success',
+        message: 'Your session plan was saved successfully. It is a pleasure to have you!',
+      })
+      setSuccessModalOpen(true)
+    } catch (saveError) {
+      console.error('Firebase could not save the session record.', saveError)
+      setSaveError(saveError?.code === 'auth/user-mismatch'
+        ? 'Your Firebase sign-in changed. Sign in again, then retry.'
+        : saveError?.code === 'permission-denied'
+          ? 'Firestore denied this save. Publish the owner-scoped rules in the Firebase console, then try again.'
+          : 'Could not save your session to Firestore. Check the connection and Firebase setup, then try again. Your session has not been marked successful.')
+    } finally {
+      setSavingSession(false)
+      saveInProgressRef.current = false
+    }
   }
 
   function handleSubmit(event) {
@@ -826,9 +898,20 @@ export default function App() {
       values={values}
       outcome={outcome}
       onContinue={continueFromReview}
-      continueDisabled={outcome?.type === 'success'}
+      continueDisabled={outcome?.type === 'success' || savingSession}
+      saving={savingSession}
+      saveError={saveError}
     />,
   ][currentStep]
+
+  if (!authReady || !firebaseUser) {
+    return (
+      <>
+        <GlobalStyles />
+        <FirebaseGoogleSignIn checkingAuth={!authReady} error={authStateError} />
+      </>
+    )
+  }
 
   return (
     <>

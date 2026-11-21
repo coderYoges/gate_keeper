@@ -45,6 +45,14 @@ The pre-session demo asks players to check their mental and emotional readiness,
 
 The demo Player IDs come from the `PLAYER_IDS` constant. The cooling-period checkbox is self-reported: it is not verified against actual play, fetched from a game account, or saved in browser storage. The app does not monitor live play or provide enforceable spending/session controls. Production enforcement requires trusted server-side session and game data.
 
+## Firebase setup
+
+The app signs users in with Google through Firebase Authentication. After a successful review, it creates a Firestore document at `users/{uid}/sessions/{sessionId}` using the signed-in user's Firebase Auth token. It stores the player ID, session limits and confirmations, deposit, completed game records, and a server timestamp; it does not store profile email or contact details. Firestore creates the `users` and `sessions` collections automatically with the first document.
+
+Local Firebase Web app settings are read from `.env.local`. Copy `.env.example` and fill in the values from the Firebase console. For GitHub Pages builds, add the `VITE_FIREBASE_*` values as repository Actions secrets. These are client configuration values, not authentication credentials; never put service-account keys in the browser app.
+
+Enable Google as a sign-in provider in Firebase Authentication and add the deployed site domain to its authorized domains. Create a Firestore database, then publish the owner-scoped rules from `firestore.rules` in the Firebase console. These rules restrict session reads and writes to the authenticated user and deny deletes. Direct Firestore writes use the Firebase Web SDK and work on the Spark plan; no service-account key or Cloud Functions deployment is used.
+
 ## Deploy to GitHub Pages
 
 The GitHub Actions workflow builds and deploys the site whenever changes are pushed to `main`.
