@@ -7,6 +7,7 @@ import {
   ErrorMessage,
 } from './FormPrimitives'
 import { PLAYER_IDS, SLOT_STAKE_AMOUNTS_BY_GAME } from '../constants'
+import { getTotalReturnedAmount } from '../utils/sessionCalculations'
 
 const ReviewList = styled.dl`
   margin: 0;
@@ -37,6 +38,71 @@ const ReviewValue = styled.dd`
   text-align: right;
 `
 
+const ReturnLimitCard = styled.aside`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #688b40;
+  border-radius: 9px;
+  background: rgb(200 241 105 / 8%);
+
+  strong {
+    display: block;
+    color: #d7f58e;
+    font-size: 12px;
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: #a8b69e;
+    font-size: 11px;
+  }
+
+  @media (max-width: 480px) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+`
+
+const ReturnLimitAmount = styled.span`
+  flex: 0 0 auto;
+  color: #c8f169;
+  font-size: 20px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+`
+
+const AgentAmountField = styled.label`
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+  color: #cbd5cd;
+  font-size: 11px;
+  font-weight: 700;
+
+  small {
+    color: #9aa79f;
+    font-size: 10px;
+    font-weight: 400;
+  }
+`
+
+const AgentAmountInput = styled.input`
+  width: min(260px, 100%);
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #536447;
+  border-radius: 7px;
+  background: #111915;
+  color: #edf3ef;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+`
+
 const ReviewContinueButton = styled.button`
   min-height: 39px;
   display: inline-flex;
@@ -62,8 +128,19 @@ const ReviewContinueButton = styled.button`
   }
 `
 
-export function ReviewStep({ values, outcome, onContinue, continueDisabled, saving, saveError }) {
+export function ReviewStep({ values, onChange, outcome, onContinue, continueDisabled, saving, saveError }) {
   const player = PLAYER_IDS.find((item) => item.playerId === values.playerId)
+  const amountReturned = getTotalReturnedAmount(values.completedGames || [])
+  const maximumAgentReturn = amountReturned * 0.5
+  const replenishedAgentAmount = values.replenishedAgentAmount === ''
+    ? String(maximumAgentReturn)
+    : values.replenishedAgentAmount
+  const agentAmountNumber = Number(replenishedAgentAmount)
+  const agentAmountError = !Number.isFinite(agentAmountNumber) || agentAmountNumber < 0
+    ? 'Enter a valid non-negative amount.'
+    : agentAmountNumber > maximumAgentReturn
+      ? 'The agent amount cannot exceed 50% of the amount returned.'
+      : ''
   const completedSlotStages = (values.slotStageResults || []).filter((stage) => stage.status !== 'pending').length
   const totalSlotStages = SLOT_STAKE_AMOUNTS_BY_GAME[values.gameName]?.length || 0
   const gamePlan = {
@@ -91,11 +168,35 @@ export function ReviewStep({ values, outcome, onContinue, continueDisabled, savi
         <ReviewRow><ReviewLabel>CURRENT SESSION TODAY</ReviewLabel><ReviewValue>{values.sessionsToday}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>EXISTING ACCOUNT BALANCE</ReviewLabel><ReviewValue>{values.existingBalance ? 'Yes' : 'No'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>SESSION DEPOSIT</ReviewLabel><ReviewValue>₹{values.depositAmount || '—'}</ReviewValue></ReviewRow>
-        <ReviewRow><ReviewLabel>3-HOUR COOLING PERIOD</ReviewLabel><ReviewValue>{values.cooldownConfirmed ? 'Confirmed by you' : 'Not confirmed'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>COOLING-PERIOD CHECK</ReviewLabel><ReviewValue>{values.cooldownConfirmed ? 'Clear based on saved sessions' : 'Not clear'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>GAME PLAN</ReviewLabel><ReviewValue>{gamePlan}</ReviewValue></ReviewRow>
       </ReviewList>
+      <ReturnLimitCard role="note" aria-label="Maximum return to agent account">
+        <div>
+          <strong>Maximum to take back to agent account</strong>
+          <p>50% of amount returned ({`₹${amountReturned.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`})</p>
+        </div>
+        <ReturnLimitAmount>{`₹${maximumAgentReturn.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</ReturnLimitAmount>
+      </ReturnLimitCard>
+      <AgentAmountField htmlFor="replenished-agent-amount">
+        Replenished agent amount
+        <AgentAmountInput
+          id="replenished-agent-amount"
+          name="replenishedAgentAmount"
+          type="number"
+          min="0"
+          max={maximumAgentReturn}
+          step="0.01"
+          value={replenishedAgentAmount}
+          onChange={onChange}
+          aria-invalid={Boolean(agentAmountError)}
+          aria-describedby="replenished-agent-amount-hint"
+        />
+        <small id="replenished-agent-amount-hint">Defaults to the maximum; edit any amount up to 50% of amount returned.</small>
+        {agentAmountError && <ErrorMessage role="alert">{agentAmountError}</ErrorMessage>}
+      </AgentAmountField>
       {saveError && <ErrorMessage role="alert">{saveError}</ErrorMessage>}
-      <ReviewContinueButton type="button" onClick={onContinue} disabled={continueDisabled}>
+      <ReviewContinueButton type="button" onClick={onContinue} disabled={continueDisabled || Boolean(agentAmountError)}>
         {saving ? 'Saving session…' : 'Save session'} <span aria-hidden="true">→</span>
       </ReviewContinueButton>
     </section>

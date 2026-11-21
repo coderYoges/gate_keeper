@@ -9,15 +9,17 @@ import { GamePlanStep } from './components/GamePlanStep'
 import { ReadinessStep } from './components/ReadinessStep'
 import { ReviewStep } from './components/ReviewStep'
 import { RiskWarningModal } from './components/RiskWarningModal'
+import { SessionDataPage } from './components/SessionDataPage'
 import { SuccessModal } from './components/SuccessModal'
 import { StepProgress } from './components/StepProgress'
 import { GlobalStyles } from './styles/GlobalStyles'
-import { auth, saveSessionRecord } from './firebase'
+import { auth, getSessionRecords, saveSessionRecord } from './firebase'
 import {
-  getCooldownStatus,
   getDailyLimit,
+  getPlayerSessionStatus,
   validateStep,
 } from './utils/sessionChecks'
+import { getTotalReturnedAmount } from './utils/sessionCalculations'
 import { getSlotGameFinalBalance } from './utils/slotCalculations'
 
 const initialValues = {
@@ -29,6 +31,7 @@ const initialValues = {
   sessionsToday: '',
   existingBalance: false,
   depositAmount: '',
+  replenishedAgentAmount: '',
   cooldownConfirmed: false,
   gameType: '',
   gameName: '',
@@ -203,6 +206,29 @@ const TopbarStatus = styled.div`
   @media (max-width: 600px) {
     font-size: 8px;
     letter-spacing: 0.6px;
+  }
+`
+
+const TopbarLinks = styled.nav`
+  display: flex;
+  align-items: center;
+  a {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    padding: 0 12px;
+    border: 1px solid #435346;
+    border-radius: 7px;
+    background: #17211b;
+    color: #c8f169;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  @media (max-width: 600px) {
+    order: 3;
+    width: 100%;
   }
 `
 
@@ -475,11 +501,24 @@ function getStepError(step, values, dailyLimit) {
   return validateStep(step, values, dailyLimit)
 }
 
+function getSessionHistoryErrorMessage(error) {
+  if (error?.code === 'permission-denied') {
+    return 'Firestore denied the session-history check. Publish the updated owner-scoped rules for game-users.'
+  }
+  return 'Could not load saved sessions to verify the current session and cooling period.'
+}
+
 export default function App() {
   const [values, setValues] = useState(initialValues)
+  const [showSavedData, setShowSavedData] = useState(() => window.location.hash === '#/data')
   const [firebaseUser, setFirebaseUser] = useState(null)
   const [authReady, setAuthReady] = useState(false)
   const [authStateError, setAuthStateError] = useState('')
+  const [sessionRecords, setSessionRecords] = useState([])
+  const [sessionHistoryLoading, setSessionHistoryLoading] = useState(false)
+  const [sessionHistoryError, setSessionHistoryError] = useState('')
+  const [sessionHistoryRefreshVersion, setSessionHistoryRefreshVersion] = useState(0)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
   const [savingSession, setSavingSession] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
@@ -490,8 +529,63 @@ export default function App() {
   const [riskWarningOpen, setRiskWarningOpen] = useState(false)
   const saveInProgressRef = useRef(false)
   const sessionIdRef = useRef(null)
-  const dailyLimit = getDailyLimit()
-  const cooldownStatus = getCooldownStatus(values.cooldownConfirmed)
+  const dailyLimit = getDailyLimit(currentTime)
+  const sessionStatus = getPlayerSessionStatus(sessionRecords, values.playerId, currentTime)
+  const historyReady = !sessionHistoryLoading && !sessionHistoryError
+  const sessionValues = {
+    ...values,
+    sessionsToday: historyReady ? String(sessionStatus.currentSessionNumber) : '',
+    cooldownConfirmed: historyReady && sessionStatus.cooldownConfirmed,
+  }
+  const cooldownStatus = sessionHistoryLoading
+    ? { tone: 'neutral', text: 'Checking saved session history…', remainingMs: null }
+    : sessionHistoryError
+      ? { tone: 'error', text: 'Cooling period could not be verified.', remainingMs: null }
+      : sessionStatus.cooldownStatus
+
+  useEffect(() => {
+    function handleHashChange() {
+      setShowSavedData(window.location.hash === '#/data')
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => setCurrentTime(new Date()), 30000)
+    return () => window.clearInterval(timerId)
+  }, [])
+
+  useEffect(() => {
+    if (!firebaseUser || !values.playerId) {
+      setSessionRecords([])
+      setSessionHistoryLoading(false)
+      setSessionHistoryError('')
+      return undefined
+    }
+
+    let active = true
+    setSessionRecords([])
+    setSessionHistoryLoading(true)
+    setSessionHistoryError('')
+
+    getSessionRecords(firebaseUser.uid)
+      .then((records) => {
+        if (active) setSessionRecords(records)
+      })
+      .catch((error) => {
+        console.error('Firebase session history could not be loaded.', error)
+        if (active) setSessionHistoryError(getSessionHistoryErrorMessage(error))
+      })
+      .finally(() => {
+        if (active) setSessionHistoryLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [firebaseUser, values.playerId, sessionHistoryRefreshVersion])
 
   useEffect(() => onAuthStateChanged(
     auth,
@@ -510,6 +604,7 @@ export default function App() {
   function handleChange(event) {
     const { name, type, checked, value } = event.currentTarget
     if (name === 'depositAmount' && value !== '' && !/^\d+$/.test(value)) return
+    if (name === 'replenishedAgentAmount' && value !== '' && !/^\d*\.?\d{0,2}$/.test(value)) return
 
     const nextValue = type === 'checkbox' ? checked : value
 
@@ -748,7 +843,25 @@ export default function App() {
   }
 
   function validateCurrentStep(step) {
-    const error = getStepError(step, values, dailyLimit)
+    if (step === 1 && (sessionHistoryLoading || sessionHistoryError)) {
+      const error = {
+        field: 'sessionsToday',
+        message: sessionHistoryLoading
+          ? 'Wait while saved session history is checked.'
+          : sessionHistoryError,
+      }
+      setErrors({ [error.field]: error.message })
+      return error
+    }
+
+    const now = new Date()
+    const currentStatus = getPlayerSessionStatus(sessionRecords, values.playerId, now)
+    const validationValues = {
+      ...values,
+      sessionsToday: String(currentStatus.currentSessionNumber),
+      cooldownConfirmed: currentStatus.cooldownConfirmed,
+    }
+    const error = getStepError(step, validationValues, getDailyLimit(now))
     setErrors(error ? { [error.field]: error.message } : {})
     return error
   }
@@ -766,6 +879,7 @@ export default function App() {
   function advance() {
     const error = validateCurrentStep(currentStep)
     if (error) {
+      if (currentStep === 1 && (sessionHistoryLoading || sessionHistoryError)) return
       if (['playedGames', 'rouletteFinalBalance', 'slotGameStopped', 'slotStageResults'].includes(error.field)) return
       setFailureMessage(error.message)
       return
@@ -804,18 +918,58 @@ export default function App() {
       return
     }
 
+    const lastGame = values.completedGames[values.completedGames.length - 1]
+    const withdrawnAmount = Number(lastGame?.finalBalance)
+    if (!lastGame || lastGame.finalBalance === null || lastGame.finalBalance === undefined
+      || lastGame.finalBalance === '' || !Number.isFinite(withdrawnAmount)) {
+      setSaveError('Record a valid final balance for the last game before saving.')
+      return
+    }
+
+    const amountReturned = getTotalReturnedAmount(values.completedGames || [])
+    const balanceInGameAccount = Number(values.depositAmount) - amountReturned
+    const maxAgentAmount = amountReturned * 0.5
+    const replenishedAgentAmount = values.replenishedAgentAmount === ''
+      ? maxAgentAmount
+      : Number(values.replenishedAgentAmount)
+    if (!Number.isFinite(replenishedAgentAmount)
+      || replenishedAgentAmount < 0
+      || replenishedAgentAmount > maxAgentAmount) {
+      setSaveError(`Enter an agent amount between ₹0 and the maximum of ₹${maxAgentAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}.`)
+      return
+    }
+
     saveInProgressRef.current = true
     setSavingSession(true)
     try {
+      const latestRecords = await getSessionRecords(firebaseUser.uid)
+      const checkedAt = new Date()
+      const latestStatus = getPlayerSessionStatus(latestRecords, values.playerId, checkedAt)
+      const currentDailyLimit = getDailyLimit(checkedAt)
+      setSessionRecords(latestRecords)
+      setCurrentTime(checkedAt)
+
+      if (latestStatus.currentSessionNumber > currentDailyLimit) {
+        setSaveError(`Today’s saved session count has reached the limit of ${currentDailyLimit}. Do not start another session today.`)
+        return
+      }
+      if (!latestStatus.cooldownConfirmed) {
+        setSaveError(latestStatus.cooldownStatus.text)
+        return
+      }
+
       if (!sessionIdRef.current) sessionIdRef.current = crypto.randomUUID()
 
       await saveSessionRecord(firebaseUser.uid, {
         sessionId: sessionIdRef.current,
         playerId: values.playerId,
-        sessionNumber: Number(values.sessionsToday),
+        sessionNumber: latestStatus.currentSessionNumber,
         existingBalance: Boolean(values.existingBalance),
         depositAmount: Number(values.depositAmount),
-        cooldownConfirmed: Boolean(values.cooldownConfirmed),
+        amountReturned,
+        balanceInGameAccount,
+        withdrawnAmount,
+        cooldownConfirmed: latestStatus.cooldownConfirmed,
         mobileDataConfirmed: Boolean(values.mobileDataConfirmed),
         differentSimConfirmed: Boolean(values.differentSimConfirmed),
         games: values.completedGames.map((game) => ({
@@ -839,7 +993,7 @@ export default function App() {
       setSaveError(saveError?.code === 'auth/user-mismatch'
         ? 'Your Firebase sign-in changed. Sign in again, then retry.'
         : saveError?.code === 'permission-denied'
-          ? 'Firestore denied this save. Publish the owner-scoped rules in the Firebase console, then try again.'
+          ? 'Firestore denied the session-history check or save. Publish the updated owner-scoped rules for game-users, then try again.'
           : 'Could not save your session to Firestore. Check the connection and Firebase setup, then try again. Your session has not been marked successful.')
     } finally {
       setSavingSession(false)
@@ -877,7 +1031,17 @@ export default function App() {
 
   const stepContent = [
     <ReadinessStep key="readiness" playerIds={PLAYER_IDS} values={values} errors={errors} onChange={handleChange} />,
-    <DailyLimitsStep key="limits" values={values} errors={errors} dailyLimit={dailyLimit} cooldownStatus={cooldownStatus} onChange={handleChange} />,
+    <DailyLimitsStep
+      key="limits"
+      values={sessionValues}
+      errors={errors}
+      dailyLimit={dailyLimit}
+      cooldownStatus={cooldownStatus}
+      sessionHistoryLoading={sessionHistoryLoading}
+      sessionHistoryError={sessionHistoryError}
+      onRetrySessionHistory={() => setSessionHistoryRefreshVersion((version) => version + 1)}
+      onChange={handleChange}
+    />,
     <GamePlanStep
       key="game-plan"
       values={values}
@@ -895,7 +1059,8 @@ export default function App() {
     />,
     <ReviewStep
       key="review"
-      values={values}
+      values={sessionValues}
+      onChange={handleChange}
       outcome={outcome}
       onContinue={continueFromReview}
       continueDisabled={outcome?.type === 'success' || savingSession}
@@ -909,6 +1074,15 @@ export default function App() {
       <>
         <GlobalStyles />
         <FirebaseGoogleSignIn checkingAuth={!authReady} error={authStateError} />
+      </>
+    )
+  }
+
+  if (showSavedData) {
+    return (
+      <>
+        <GlobalStyles />
+        <SessionDataPage user={firebaseUser} />
       </>
     )
   }
@@ -947,6 +1121,9 @@ export default function App() {
             </BrandMark>
             <BrandCopy><strong>gatekeeper</strong><small>PLAYER WELLBEING</small></BrandCopy>
           </Brand>
+          <TopbarLinks aria-label="Main navigation">
+            <a href="#/data">Transfer history</a>
+          </TopbarLinks>
           <TopbarStatus><StatusPulse /> SYSTEM READY</TopbarStatus>
         </Topbar>
 

@@ -1,6 +1,15 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
+import {
+  collection,
+  doc,
+  getDocs,
+  getFirestore,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -31,8 +40,27 @@ export async function saveSessionRecord(userId, sessionRecord) {
   }
 
   const { sessionId, ...record } = sessionRecord
-  await setDoc(doc(db, 'users', userId, 'sessions', sessionId), {
+  await setDoc(doc(db, 'game-users', sessionId), {
     ...record,
+    ownerUid: userId,
     createdAt: serverTimestamp(),
   })
+}
+
+export async function getSessionRecords(userId) {
+  if (auth.currentUser?.uid !== userId) {
+    const error = new Error('The active Firebase user does not match the session owner.')
+    error.code = 'auth/user-mismatch'
+    throw error
+  }
+
+  const recordsQuery = query(
+    collection(db, 'game-users'),
+    where('ownerUid', '==', userId),
+  )
+  const snapshot = await getDocs(recordsQuery)
+  return snapshot.docs.map((record) => ({
+    ...record.data(),
+    sessionId: record.id,
+  }))
 }

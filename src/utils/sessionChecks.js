@@ -12,10 +12,70 @@ export function getDailyLimit(date = new Date()) {
   return day === 0 || day === 6 ? DAILY_SESSION_LIMITS.weekend : DAILY_SESSION_LIMITS.weekday
 }
 
-export function getCooldownStatus(cooldownConfirmed) {
-  return cooldownConfirmed
-    ? { tone: 'clear', text: 'You confirmed that at least 3 hours have passed since your last session.', remainingMs: 0 }
-    : { tone: 'neutral', text: 'Confirm that at least 3 hours have passed since your last session.', remainingMs: null }
+function getSessionDate(value) {
+  if (!value) return null
+  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function formatRemainingTime(remainingMs) {
+  const totalMinutes = Math.ceil(remainingMs / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+}
+
+export function getPlayerSessionStatus(records, playerId, now = new Date()) {
+  if (!playerId) {
+    return {
+      currentSessionNumber: '',
+      cooldownConfirmed: false,
+      cooldownStatus: {
+        tone: 'neutral',
+        text: 'Select a player to check saved session history.',
+        remainingMs: null,
+      },
+    }
+  }
+
+  const playerSessions = (Array.isArray(records) ? records : [])
+    .filter((record) => record.playerId === playerId)
+    .map((record) => getSessionDate(record.createdAt))
+    .filter(Boolean)
+  const sessionsToday = playerSessions.filter((sessionDate) => (
+    sessionDate.getFullYear() === now.getFullYear()
+    && sessionDate.getMonth() === now.getMonth()
+    && sessionDate.getDate() === now.getDate()
+  )).length
+  const lastSessionAt = playerSessions.reduce(
+    (latest, sessionDate) => (!latest || sessionDate > latest ? sessionDate : latest),
+    null,
+  )
+
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6
+  const cooldownHours = isWeekend && now.getHours() >= SESSION_RULES.weekendNightStartHour
+    ? SESSION_RULES.weekendNightCooldownHours
+    : SESSION_RULES.weekdayCooldownHours
+  const requiredCooldownMs = cooldownHours * 60 * 60 * 1000
+  const remainingMs = lastSessionAt
+    ? Math.max(0, lastSessionAt.getTime() + requiredCooldownMs - now.getTime())
+    : 0
+  const cooldownConfirmed = remainingMs === 0
+  const cooldownText = !lastSessionAt
+    ? 'No previous session is saved for this player. The cooling-period check is clear.'
+    : cooldownConfirmed
+      ? `Cooling-period check is clear. The ${cooldownHours}-hour break has passed since the last saved session.`
+      : `Cooling period active. Wait ${formatRemainingTime(remainingMs)} more; the current requirement is ${cooldownHours} hour${cooldownHours === 1 ? '' : 's'}.`
+
+  return {
+    currentSessionNumber: sessionsToday + 1,
+    cooldownConfirmed,
+    cooldownStatus: {
+      tone: cooldownConfirmed ? 'clear' : 'cooling',
+      text: cooldownText,
+      remainingMs,
+    },
+  }
 }
 
 export function getSessionStopStatus(finalBalance, depositAmount) {
@@ -91,7 +151,7 @@ export function validateStep(step, values, dailyLimit) {
     if (!values.cooldownConfirmed) {
       return {
         field: 'cooldownConfirmed',
-        message: 'Confirm that at least 3 hours have passed since your last session.',
+        message: 'The cooling period has not ended. Wait for the saved-session check to clear before continuing.',
       }
     }
   }

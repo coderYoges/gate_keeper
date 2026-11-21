@@ -8,10 +8,14 @@ service cloud.firestore {
 
     function validSessionRecord() {
       return request.resource.data.keys().hasAll([
+          'ownerUid',
           'playerId',
           'sessionNumber',
           'existingBalance',
           'depositAmount',
+          'amountReturned',
+          'balanceInGameAccount',
+          'withdrawnAmount',
           'cooldownConfirmed',
           'mobileDataConfirmed',
           'differentSimConfirmed',
@@ -19,22 +23,33 @@ service cloud.firestore {
           'createdAt'
         ])
         && request.resource.data.keys().hasOnly([
+          'ownerUid',
           'playerId',
           'sessionNumber',
           'existingBalance',
           'depositAmount',
+          'amountReturned',
+          'balanceInGameAccount',
+          'withdrawnAmount',
           'cooldownConfirmed',
           'mobileDataConfirmed',
           'differentSimConfirmed',
           'games',
           'createdAt'
         ])
+        && request.resource.data.ownerUid is string
         && request.resource.data.playerId is string
         && request.resource.data.sessionNumber is number
         && request.resource.data.existingBalance is bool
         && request.resource.data.depositAmount is number
         && request.resource.data.depositAmount > 0
         && request.resource.data.depositAmount <= 15000
+        && request.resource.data.amountReturned is number
+        && request.resource.data.amountReturned >= 0
+        && request.resource.data.balanceInGameAccount is number
+        && request.resource.data.balanceInGameAccount == request.resource.data.depositAmount - request.resource.data.amountReturned
+        && request.resource.data.withdrawnAmount is number
+        && request.resource.data.withdrawnAmount >= 0
         && (!request.resource.data.existingBalance || request.resource.data.depositAmount >= 300)
         && request.resource.data.cooldownConfirmed == true
         && request.resource.data.mobileDataConfirmed == true
@@ -44,9 +59,13 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
     }
 
-    match /users/{userId}/sessions/{sessionId} {
-      allow get, list: if ownsUser(userId);
-      allow create, update: if ownsUser(userId) && validSessionRecord();
+    match /game-users/{sessionId} {
+      allow get, list: if ownsUser(resource.data.ownerUid);
+      allow create: if ownsUser(request.resource.data.ownerUid)
+        && validSessionRecord();
+      allow update: if ownsUser(resource.data.ownerUid)
+        && ownsUser(request.resource.data.ownerUid)
+        && validSessionRecord();
       allow delete: if false;
     }
 

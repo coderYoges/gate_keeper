@@ -30,7 +30,34 @@ const LastPlayedStatus = styled.div`
   overflow-wrap: anywhere;
 `
 
-export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, onChange }) {
+const RetryButton = styled.button`
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid #435346;
+  border-radius: 6px;
+  background: #17211b;
+  color: #edf3ef;
+  font-size: 11px;
+  font-weight: 700;
+`
+
+const CurrentSessionInput = styled(TextInput)`
+  border-color: #36443b;
+  background: #1a231e;
+  color: #89958d;
+  cursor: not-allowed;
+`
+
+export function DailyLimitsStep({
+  values,
+  errors,
+  dailyLimit,
+  cooldownStatus,
+  sessionHistoryLoading,
+  sessionHistoryError,
+  onRetrySessionHistory,
+  onChange,
+}) {
   return (
     <section aria-labelledby="limits-heading">
       <PanelHeading>
@@ -40,9 +67,24 @@ export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, on
       </PanelHeading>
       <FieldGrid>
         <Field>
-          <FieldLabel htmlFor="sessions-today">Current session for the day <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
-          <TextInput id="sessions-today" name="sessionsToday" type="number" min="1" max={dailyLimit} step="1" placeholder="1" inputMode="numeric" value={values.sessionsToday} onChange={onChange} aria-invalid={Boolean(errors.sessionsToday)} required />
-          {errors.sessionsToday ? <ErrorMessage>{errors.sessionsToday}</ErrorMessage> : <Hint>Today’s limit: {dailyLimit} sessions.</Hint>}
+          <FieldLabel htmlFor="sessions-today">Current session for the day</FieldLabel>
+          <CurrentSessionInput
+            id="sessions-today"
+            name="sessionsToday"
+            type="number"
+            value={values.sessionsToday}
+            readOnly
+            aria-invalid={Boolean(errors.sessionsToday)}
+          />
+          {errors.sessionsToday && !sessionHistoryError
+            ? <ErrorMessage>{errors.sessionsToday}</ErrorMessage>
+            : <Hint>
+              {sessionHistoryLoading
+                ? 'Checking saved session history…'
+                : sessionHistoryError
+                  ? 'Session count is unavailable until Firebase history can be read.'
+                  : `Calculated from saved sessions. Today’s limit: ${dailyLimit}.`}
+            </Hint>}
         </Field>
         <Field $wide>
           <ChoiceCard>
@@ -69,20 +111,23 @@ export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, on
             : <Hint>{values.existingBalance ? 'Minimum deposit: ₹300. ' : ''}Maximum deposit: ₹15,000 per user per session.</Hint>}
         </Field>
         <Field $wide>
-          <FieldLabel>3-hour cooling period <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
+          <FieldLabel>Cooling-period check <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
           <ChoiceCard>
-            <Checkbox id="cooldown-confirmed" name="cooldownConfirmed" checked={values.cooldownConfirmed} onChange={onChange} aria-invalid={Boolean(errors.cooldownConfirmed)} />
             <span>
-              <strong>Cooling-period check</strong>
-              <small>I confirm at least 3 hours have passed since my last session.</small>
-              {errors.cooldownConfirmed && <ErrorMessage role="alert">{errors.cooldownConfirmed}</ErrorMessage>}
+              <strong>Automatic cooling-period check</strong>
+              <small>Checked against this player’s latest saved Firebase session.</small>
             </span>
           </ChoiceCard>
           <LastPlayedStatus $tone={cooldownStatus.tone} aria-live="polite">{cooldownStatus.text}</LastPlayedStatus>
-          <Hint>This is self-reported and is not checked against a game account.</Hint>
+          {sessionHistoryError && (
+            <>
+              <ErrorMessage role="alert">{sessionHistoryError}</ErrorMessage>
+              <RetryButton type="button" onClick={onRetrySessionHistory}>Retry session check</RetryButton>
+            </>
+          )}
         </Field>
       </FieldGrid>
-      <InlineNote><NoteIcon aria-hidden="true">i</NoteIcon>Weekday limit: 2 sessions. Weekend limit: 4 sessions. Wait at least 3 hours between sessions.</InlineNote>
+      <InlineNote><NoteIcon aria-hidden="true">i</NoteIcon>Weekday limit: 2 sessions; weekend limit: 4. Wait 3 hours between sessions, or 1 hour on weekends after 6 pm.</InlineNote>
     </section>
   )
 }

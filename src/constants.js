@@ -60,6 +60,9 @@ export const SESSION_RULES = {
   rouletteBaseMax: 200,
   stopLossPercent: 0.5,
   stopWin: 1000,
+  weekdayCooldownHours: 3,
+  weekendNightCooldownHours: 1,
+  weekendNightStartHour: 18,
 }
 
 export const SLOT_STAKE_AMOUNTS_BY_GAME = {
