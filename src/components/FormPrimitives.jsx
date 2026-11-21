@@ -29,38 +29,38 @@ export const FieldLabel = styled.label`
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #38443c;
-  font-size: 11px;
+  color: #d5ded7;
+  font-size: 12px;
   font-weight: 650;
 `
 
 export const RequiredTag = styled.span`
-  color: #a2aaa3;
-  font-size: 8px;
+  color: #89978e;
+  font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.8px;
 `
 
 const controlStyles = `
   width: 100%;
-  min-height: 44px;
+  min-height: 42px;
   padding: 0 12px;
-  border: 1px solid #e1e6e0;
+  border: 1px solid #334138;
   border-radius: 7px;
-  background: #fff;
-  color: #27332b;
-  font-size: 12px;
+  background: #111915;
+  color: #edf3ef;
+  font-size: 13px;
   transition: border-color 150ms ease, box-shadow 150ms ease;
 
   &:focus {
-    border-color: #89a96a;
+    border-color: #99bc64;
     outline: none;
-    box-shadow: 0 0 0 3px rgb(137 169 106 / 14%);
+    box-shadow: 0 0 0 3px rgb(153 188 100 / 14%);
   }
 
   &:disabled {
-    background: #f8faf6;
-    color: #a4ada5;
+    background: #1b251f;
+    color: #718078;
     cursor: not-allowed;
   }
 `
@@ -69,40 +69,40 @@ export const TextInput = styled.input`
   ${controlStyles}
 
   &::placeholder {
-    color: #b0b8b1;
+    color: #69776f;
   }
 `
 
 export const SelectInput = styled.select`
   ${controlStyles}
-  color: ${({ value }) => (value ? '#27332b' : '#a4ada5')};
+  color: ${({ value }) => (value ? '#edf3ef' : '#69776f')};
 `
 
 export const Hint = styled.span`
-  color: #939c95;
-  font-size: 10px;
+  color: #93a098;
+  font-size: 11px;
   line-height: 1.5;
 `
 
 export const ErrorMessage = styled.p`
   margin: 0;
-  color: #a34f45;
-  font-size: 10px;
+  color: #f09a8e;
+  font-size: 11px;
   line-height: 1.5;
 `
 
 export const InputGroup = styled.div`
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 42px;
   overflow: hidden;
-  border: 1px solid #e1e6e0;
+  border: 1px solid #334138;
   border-radius: 7px;
-  background: #fff;
+  background: #111915;
 
   &:focus-within {
-    border-color: #89a96a;
-    box-shadow: 0 0 0 3px rgb(137 169 106 / 14%);
+    border-color: #99bc64;
+    box-shadow: 0 0 0 3px rgb(153 188 100 / 14%);
   }
 
   ${TextInput} {
@@ -114,20 +114,20 @@ export const InputGroup = styled.div`
 
 export const CurrencyPrefix = styled.span`
   padding-left: 12px;
-  color: #78827c;
-  font-size: 12px;
+  color: #9aa79f;
+  font-size: 13px;
 `
 
 export const InlineNote = styled.div`
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-top: 22px;
-  padding: 11px 12px;
+  margin-top: 14px;
+  padding: 9px 12px;
   border-radius: 7px;
-  background: #f6f8f4;
-  color: #778278;
-  font-size: 10px;
+  background: #1b251f;
+  color: #9aa69e;
+  font-size: 11px;
   line-height: 1.5;
 `
 
@@ -137,33 +137,33 @@ export const NoteIcon = styled.span`
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border: 1px solid #aebca4;
+  border: 1px solid #66805a;
   border-radius: 50%;
-  color: #74876a;
+  color: #b1c6a0;
   font-size: 9px;
   font-weight: 700;
 `
 
 export const PanelHeading = styled.div`
-  margin-bottom: 26px;
+  margin-bottom: 18px;
 `
 
 export const PanelKicker = styled.p`
-  margin: 0 0 10px;
-  color: #849080;
-  font-size: 9px;
+  margin: 0 0 7px;
+  color: #96a68f;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 1.15px;
 
   span {
-    color: #afb7b0;
+    color: #68756d;
   }
 `
 
 export const PanelTitle = styled.h2`
   margin: 0 0 6px;
-  color: #17231e;
-  font-size: 23px;
+  color: #edf3ef;
+  font-size: 25px;
   font-weight: 630;
   letter-spacing: -0.8px;
 
@@ -174,8 +174,8 @@ export const PanelTitle = styled.h2`
 
 export const PanelDescription = styled.p`
   margin: 0;
-  color: #838d86;
-  font-size: 12px;
+  color: #99a59d;
+  font-size: 13px;
   line-height: 1.55;
 `
 
@@ -185,9 +185,9 @@ export const ChoiceCard = styled.label`
   gap: 11px;
   grid-column: 1 / -1;
   padding: 12px;
-  border: 1px solid #e4e9e1;
+  border: 1px solid #303d35;
   border-radius: 8px;
-  background: #f8faf6;
+  background: #1a2420;
   cursor: pointer;
 
   @media (max-width: 600px) {
@@ -200,14 +200,14 @@ export const ChoiceCard = styled.label`
   }
 
   strong {
-    color: #3e4b40;
-    font-size: 10px;
+    color: #d1dad3;
+    font-size: 11px;
     font-weight: 700;
   }
 
   small {
-    color: #7d887e;
-    font-size: 10px;
+    color: #99a49d;
+    font-size: 11px;
     line-height: 1.5;
   }
 `

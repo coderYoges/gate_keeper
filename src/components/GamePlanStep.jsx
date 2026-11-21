@@ -41,8 +41,8 @@ const RiskLimitGroup = styled.div`
 
 const RiskLimitTitle = styled.h3`
   margin: 0;
-  color: #38443c;
-  font-size: 11px;
+  color: #d5ded7;
+  font-size: 12px;
   font-weight: 650;
 `
 

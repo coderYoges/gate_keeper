@@ -4,7 +4,7 @@ const ProgressNav = styled.nav`
   position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  margin: 0 0 38px;
+  margin: 0 0 28px;
 `
 
 const Track = styled.div`
@@ -14,7 +14,7 @@ const Track = styled.div`
   left: 12.5%;
   height: 2px;
   overflow: hidden;
-  background: #e8ece7;
+  background: #313d36;
 `
 
 const TrackFill = styled.span`
@@ -34,7 +34,7 @@ const StepButton = styled.button`
   padding: 0;
   border: 0;
   background: transparent;
-  color: ${({ $current, $complete }) => ($current ? '#17231e' : $complete ? '#567d34' : '#a0a9a2')};
+  color: ${({ $current, $complete }) => ($current ? '#edf3ef' : $complete ? '#a8c77a' : '#748179')};
   cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
 `
 
@@ -43,18 +43,18 @@ const StepDot = styled.span`
   height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid ${({ $current, $complete }) => ($current ? '#192820' : $complete ? '#dce9d0' : '#e1e6e0')};
+  border: 1px solid ${({ $current, $complete }) => ($current ? '#c8f169' : $complete ? '#526a40' : '#39473f')};
   border-radius: 50%;
-  background: ${({ $current, $complete }) => ($current ? '#192820' : $complete ? '#eaf3e1' : '#fff')};
-  color: ${({ $current, $complete }) => ($current ? '#c8f169' : $complete ? '#527b30' : '#8b958d')};
-  box-shadow: ${({ $current }) => ($current ? '0 0 0 4px #eef3e9' : 'none')};
+  background: ${({ $current, $complete }) => ($current ? '#c8f169' : $complete ? '#263820' : '#1a2420')};
+  color: ${({ $current, $complete }) => ($current ? '#17231e' : $complete ? '#b7d58c' : '#8e9b93')};
+  box-shadow: ${({ $current }) => ($current ? '0 0 0 4px rgb(200 241 105 / 10%)' : 'none')};
   font-size: 10px;
   font-weight: 700;
   transition: 180ms ease;
 `
 
 const StepName = styled.span`
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 
   @media (max-width: 600px) {

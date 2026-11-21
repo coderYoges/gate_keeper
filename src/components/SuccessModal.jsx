@@ -24,11 +24,11 @@ export function SuccessModal({ message, onOkay }) {
         if (event.target === event.currentTarget) onOkay()
       }}
     >
-      <ModalDialog role="dialog" aria-modal="true" aria-labelledby="success-title" aria-describedby="success-message">
+      <ModalDialog $tone="success" role="dialog" aria-modal="true" aria-labelledby="success-title" aria-describedby="success-message">
         <h2 id="success-title">Checks passed</h2>
         <p id="success-message">{message}</p>
         <ModalActions>
-          <ModalButton ref={okayButtonRef} $primary type="button" onClick={onOkay}>Okay</ModalButton>
+          <ModalButton ref={okayButtonRef} $primary $tone="success" type="button" onClick={onOkay}>Okay</ModalButton>
         </ModalActions>
       </ModalDialog>
     </ModalOverlay>

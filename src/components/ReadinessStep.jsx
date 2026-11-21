@@ -1,4 +1,6 @@
 import {
+  Checkbox,
+  ChoiceCard,
   ErrorMessage,
   Field,
   FieldGrid,
@@ -15,6 +17,8 @@ import {
 } from './FormPrimitives'
 
 export function ReadinessStep({ playerIds, values, errors, onChange }) {
+  const selectedPlayer = playerIds.find((player) => player.playerId === values.playerId)
+
   return (
     <section aria-labelledby="readiness-heading">
       <PanelHeading>
@@ -24,13 +28,35 @@ export function ReadinessStep({ playerIds, values, errors, onChange }) {
       </PanelHeading>
       <FieldGrid>
         <Field $wide>
-          <FieldLabel htmlFor="player-id">Player ID <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
+          <FieldLabel htmlFor="player-id">Who is Playing? <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
           <SelectInput id="player-id" name="playerId" value={values.playerId} onChange={onChange} required aria-invalid={Boolean(errors.playerId)}>
-            <option value="">Select a player ID</option>
-            {playerIds.map((playerId) => <option key={playerId} value={playerId}>{playerId}</option>)}
+            <option value="">Select a player</option>
+            {playerIds.map((player) => (
+              <option key={player.playerId} value={player.playerId}>
+                {player.playerName}
+              </option>
+            ))}
           </SelectInput>
-          {errors.playerId ? <ErrorMessage>{errors.playerId}</ErrorMessage> : <Hint>Demo IDs are listed in the PLAYER_IDS constant.</Hint>}
+          {errors.playerId ? <ErrorMessage>{errors.playerId}</ErrorMessage> : <Hint>Select your profile by name, player ID, location, and device.</Hint>}
         </Field>
+        {selectedPlayer && (
+          <Field $wide>
+            <ChoiceCard>
+              <Checkbox
+                name="playerDetailsConfirmed"
+                checked={values.playerDetailsConfirmed}
+                onChange={onChange}
+                aria-invalid={Boolean(errors.playerDetailsConfirmed)}
+              />
+              <span>
+                <strong>Are you playing in accordance with your profile?</strong>
+                <small>Device: {selectedPlayer.deviceName}</small>
+                <small>Location: {selectedPlayer.location}</small>
+              </span>
+            </ChoiceCard>
+            {errors.playerDetailsConfirmed && <ErrorMessage role="alert">{errors.playerDetailsConfirmed}</ErrorMessage>}
+          </Field>
+        )}
         <Field $wide>
           <FieldLabel htmlFor="mental-state">Mental and emotional check <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
           <SelectInput id="mental-state" name="mentalState" value={values.mentalState} onChange={onChange} required aria-invalid={Boolean(errors.mentalState)}>

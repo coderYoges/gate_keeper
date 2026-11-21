@@ -13,8 +13,11 @@ export function getCooldownStatus(cooldownConfirmed) {
 
 export function validateStep(step, values, dailyLimit) {
   if (step === 0) {
-    if (!PLAYER_IDS.includes(values.playerId)) {
-      return { field: 'playerId', message: 'Select a player ID from the list.' }
+    if (!PLAYER_IDS.some((player) => player.playerId === values.playerId)) {
+      return { field: 'playerId', message: 'Select a player from the list.' }
+    }
+    if (!values.playerDetailsConfirmed) {
+      return { field: 'playerDetailsConfirmed', message: 'Confirm that the device and location shown match your profile.' }
     }
     if (!values.mentalState) {
       return { field: 'mentalState', message: 'Select how you are feeling before continuing.' }
@@ -26,11 +29,11 @@ export function validateStep(step, values, dailyLimit) {
 
   if (step === 1) {
     const sessions = Number(values.sessionsToday)
-    if (values.sessionsToday === '' || !Number.isInteger(sessions) || sessions < 0) {
-      return { field: 'sessionsToday', message: 'Enter a whole number of sessions already played today.' }
+    if (values.sessionsToday === '' || !Number.isInteger(sessions) || sessions < 1) {
+      return { field: 'sessionsToday', message: 'Enter the current session number for today, starting from 1.' }
     }
-    if (sessions >= dailyLimit) {
-      return { field: 'sessionsToday', message: `You’ve reached today’s limit of ${dailyLimit} sessions. Please don’t start another session today.` }
+    if (sessions > dailyLimit) {
+      return { field: 'sessionsToday', message: `This session number exceeds today’s limit of ${dailyLimit} sessions.` }
     }
 
     const deposit = Number(values.depositAmount)

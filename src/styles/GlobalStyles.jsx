@@ -3,8 +3,9 @@ import { createGlobalStyle } from 'styled-components'
 export const GlobalStyles = createGlobalStyle`
   :root {
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #17231e;
-    background: #f3f5f2;
+    color: #e8eee9;
+    background: #0d1511;
+    color-scheme: dark;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -21,6 +22,11 @@ export const GlobalStyles = createGlobalStyle`
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background:
+      radial-gradient(circle at 85% 8%, rgb(151 190 95 / 7%), transparent 24rem),
+      #0d1511;
   }
 
   @keyframes panel-in {
@@ -38,6 +44,11 @@ export const GlobalStyles = createGlobalStyle`
   input,
   select {
     font: inherit;
+  }
+
+  select option {
+    background: #111915;
+    color: #edf3ef;
   }
 
   button {

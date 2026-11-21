@@ -5,33 +5,33 @@ import {
   PanelKicker,
   PanelTitle,
 } from './FormPrimitives'
-import { SESSION_RULES } from '../constants'
+import { PLAYER_IDS, SESSION_RULES } from '../constants'
 
 const ReviewList = styled.dl`
   margin: 0;
-  border-top: 1px solid #edf0ec;
+  border-top: 1px solid #26332c;
 `
 
 const ReviewRow = styled.div`
-  min-height: 42px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid #edf0ec;
+  border-bottom: 1px solid #26332c;
 `
 
 const ReviewLabel = styled.dt`
-  color: #929b93;
-  font-size: 9px;
+  color: #93a098;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.65px;
 `
 
 const ReviewValue = styled.dd`
   margin: 0;
-  color: #344039;
-  font-size: 11px;
+  color: #dde5df;
+  font-size: 12px;
   font-weight: 600;
   text-align: right;
 `
@@ -39,26 +39,26 @@ const ReviewValue = styled.dd`
 const RiskSummary = styled.div`
   display: grid;
   gap: 10px;
-  margin-top: 15px;
+  margin-top: 10px;
 `
 
 const RiskSummaryItem = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 11px 12px;
-  border: 1px solid #e4e9e1;
+  padding: 9px 12px;
+  border: 1px solid #303d35;
   border-radius: 8px;
-  background: #f8faf6;
+  background: #1a2420;
 
   strong {
-    color: #3e4b40;
-    font-size: 10px;
+    color: #d1dad3;
+    font-size: 11px;
   }
 
   span {
-    color: #7d887e;
-    font-size: 10px;
+    color: #99a49d;
+    font-size: 11px;
     text-align: right;
   }
 `
@@ -69,9 +69,9 @@ const Outcome = styled.div`
   gap: 11px;
   margin-top: 16px;
   padding: 13px;
-  border: 1px solid ${({ $error }) => ($error ? '#f0dfc8' : '#d9e8ca')};
+  border: 1px solid ${({ $error }) => ($error ? '#685436' : '#47613a')};
   border-radius: 8px;
-  background: ${({ $error }) => ($error ? '#fff8ef' : '#f3f8ee')};
+  background: ${({ $error }) => ($error ? '#2b251a' : '#1e281b')};
   animation: panel-in 180ms ease both;
 `
 
@@ -82,28 +82,29 @@ const OutcomeIcon = styled.span`
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: ${({ $error }) => ($error ? '#f7e9d7' : '#e0edcf')};
-  color: ${({ $error }) => ($error ? '#a46b2d' : '#507b2e')};
+  background: ${({ $error }) => ($error ? '#4a3822' : '#30432b')};
+  color: ${({ $error }) => ($error ? '#d8bd89' : '#b1d28a')};
   font-size: 12px;
   font-weight: 800;
 `
 
 const OutcomeCopy = styled.div`
   strong {
-    color: ${({ $error }) => ($error ? '#9a682e' : '#4f7435')};
+    color: ${({ $error }) => ($error ? '#d8bd89' : '#b1d28a')};
     font-size: 9px;
     letter-spacing: 0.8px;
   }
 
   p {
     margin: 4px 0 0;
-    color: #69756a;
+    color: #abb6ae;
     font-size: 10px;
     line-height: 1.5;
   }
 `
 
 export function ReviewStep({ values, outcome }) {
+  const player = PLAYER_IDS.find((item) => item.playerId === values.playerId)
   const gamePlan = {
     slots: `Slots: ${values.slotGames} games at ${values.slotBet ? `₹${values.slotBet}` : '—'} each`,
     roulette: `Roulette: base amount ₹${values.rouletteBase || '—'}`,
@@ -118,11 +119,15 @@ export function ReviewStep({ values, outcome }) {
       <PanelHeading>
         <PanelKicker>STEP 04 <span>—</span> FINAL REVIEW</PanelKicker>
         <PanelTitle id="review-heading">Review your session plan.</PanelTitle>
-        <PanelDescription>Confirm the session details and review your stop limits before starting the demo session.</PanelDescription>
+        <PanelDescription>Confirm the session details and review your stop limits before starting the session.</PanelDescription>
       </PanelHeading>
       <ReviewList>
-        <ReviewRow><ReviewLabel>PLAYER ID</ReviewLabel><ReviewValue>{values.playerId || '—'}</ReviewValue></ReviewRow>
-        <ReviewRow><ReviewLabel>SESSIONS TODAY</ReviewLabel><ReviewValue>{values.sessionsToday}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>PLAYER</ReviewLabel><ReviewValue>{player?.playerName || '—'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>PLAYER ID</ReviewLabel><ReviewValue>{player?.playerId || '—'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>EMAIL</ReviewLabel><ReviewValue>{player?.email || '—'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>LOCATION</ReviewLabel><ReviewValue>{player?.location || '—'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>DEVICE</ReviewLabel><ReviewValue>{player?.deviceName || '—'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>CURRENT SESSION TODAY</ReviewLabel><ReviewValue>{values.sessionsToday}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>SESSION DEPOSIT</ReviewLabel><ReviewValue>₹{values.depositAmount || '—'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>3-HOUR COOLING PERIOD</ReviewLabel><ReviewValue>{values.cooldownConfirmed ? 'Confirmed by you' : 'Not confirmed'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>GAME PLAN</ReviewLabel><ReviewValue>{gamePlan}</ReviewValue></ReviewRow>

@@ -6,7 +6,6 @@ import { FailureModal } from './components/FailureModal'
 import { GamePlanStep } from './components/GamePlanStep'
 import { ReadinessStep } from './components/ReadinessStep'
 import { ReviewStep } from './components/ReviewStep'
-import { SessionSummary } from './components/SessionSummary'
 import { SuccessModal } from './components/SuccessModal'
 import { StepProgress } from './components/StepProgress'
 import { GlobalStyles } from './styles/GlobalStyles'
@@ -18,6 +17,7 @@ import {
 
 const initialValues = {
   playerId: '',
+  playerDetailsConfirmed: false,
   mentalState: '',
   sessionsToday: '',
   depositAmount: '',
@@ -46,11 +46,11 @@ const Shell = styled.div`
 `
 
 const Topbar = styled.header`
-  min-height: 82px;
+  min-height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e6e9e5;
+  border-bottom: 1px solid #26332c;
 
   @media (max-width: 600px) {
     min-height: 68px;
@@ -61,7 +61,7 @@ const Brand = styled.a`
   display: inline-flex;
   align-items: center;
   gap: 11px;
-  color: #17231e;
+  color: #edf3ef;
   text-decoration: none;
 `
 
@@ -71,11 +71,11 @@ const BrandMark = styled.span`
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: #192820;
+  background: #c8f169;
 
   svg {
     width: 23px;
-    stroke: #c8f169;
+    stroke: #17231e;
     stroke-width: 1.8;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -87,13 +87,13 @@ const BrandCopy = styled.span`
   gap: 2px;
 
   strong {
-    font-size: 16px;
+    font-size: 17px;
     letter-spacing: -0.5px;
   }
 
   small {
-    color: #78827c;
-    font-size: 9px;
+    color: #99a79d;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.4px;
   }
@@ -103,8 +103,8 @@ const TopbarStatus = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #6a756e;
-  font-size: 10px;
+  color: #a6b1a9;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.05px;
 
@@ -119,14 +119,14 @@ const StatusPulse = styled.span`
   height: 7px;
   border-radius: 50%;
   background: #7cb840;
-  box-shadow: 0 0 0 4px #e6f0dc;
+  box-shadow: 0 0 0 4px rgb(124 184 64 / 14%);
 `
 
 const PageContent = styled.main`
-  padding: 48px 0 28px;
+  padding: 28px 0 16px;
 
   @media (max-width: 600px) {
-    padding-top: 34px;
+    padding-top: 20px;
   }
 `
 
@@ -134,7 +134,7 @@ const Intro = styled.section`
   display: flex;
   align-items: end;
   justify-content: space-between;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 
   @media (max-width: 600px) {
     align-items: flex-start;
@@ -148,8 +148,8 @@ const Eyebrow = styled.p`
   align-items: center;
   gap: 8px;
   margin: 0;
-  color: #708072;
-  font-size: 10px;
+  color: #9baa9e;
+  font-size: 11px;
   font-weight: 750;
   letter-spacing: 1.15px;
 
@@ -166,12 +166,12 @@ const EyebrowLine = styled.span`
 `
 
 const EyebrowSlash = styled.span`
-  color: #afb7b0;
+  color: #68756d;
 `
 
 const PageTitle = styled.h1`
-  margin: 15px 0 8px;
-  color: #17231e;
+  margin: 10px 0 6px;
+  color: #edf3ef;
   font-size: clamp(32px, 4vw, 43px);
   font-weight: 650;
   letter-spacing: -2.2px;
@@ -189,8 +189,8 @@ const PageTitle = styled.h1`
 
 const IntroCopy = styled.p`
   margin: 0;
-  color: #748078;
-  font-size: 14px;
+  color: #a1aca4;
+  font-size: 15px;
 
   @media (max-width: 600px) {
     max-width: 300px;
@@ -204,7 +204,7 @@ const FlowCount = styled.div`
   align-items: center;
   gap: 7px;
   padding-bottom: 6px;
-  color: #8a948d;
+  color: #829087;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 
@@ -213,7 +213,7 @@ const FlowCount = styled.div`
   }
 
   strong {
-    color: #17231e;
+    color: #edf3ef;
     font-size: 19px;
     font-weight: 650;
   }
@@ -221,7 +221,7 @@ const FlowCount = styled.div`
   i {
     width: 24px;
     height: 1px;
-    background: #cbd1cb;
+    background: #3a473f;
   }
 
   small {
@@ -234,7 +234,7 @@ const FlowCount = styled.div`
 
 const Workspace = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 22px;
 
@@ -245,12 +245,12 @@ const Workspace = styled.div`
 
 const FlowCard = styled.section`
   min-width: 0;
-  padding: 30px 34px 0;
+  padding: 22px 34px 0;
   overflow: hidden;
-  border: 1px solid #e7eae6;
+  border: 1px solid #26332c;
   border-radius: 15px;
-  background: #fff;
-  box-shadow: 0 12px 40px rgb(34 49 37 / 4%);
+  background: #151d18;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 24%);
 
   @media (max-width: 600px) {
     padding: 23px 19px 0;
@@ -262,27 +262,27 @@ const Form = styled.form`
 `
 
 const StepPanel = styled.div`
-  min-height: 305px;
+  min-height: 270px;
   animation: panel-in 220ms ease both;
 
   @media (max-width: 600px) {
-    min-height: 320px;
+    min-height: 260px;
   }
 `
 
 const FormFooter = styled.div`
-  min-height: 76px;
+  min-height: 68px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 24px -34px 0;
-  padding: 14px 34px;
-  border-top: 1px solid #edf0ec;
+  margin: 16px -34px 0;
+  padding: 10px 34px;
+  border-top: 1px solid #26332c;
 
   @media (max-width: 600px) {
-    min-height: 69px;
-    margin: 22px -19px 0;
-    padding: 12px 19px;
+    min-height: 62px;
+    margin: 12px -19px 0;
+    padding: 9px 19px;
     gap: 8px;
   }
 `
@@ -294,11 +294,11 @@ const BackButton = styled.button`
   justify-content: center;
   gap: 10px;
   padding: 0 13px;
-  border: 1px solid #e1e6e0;
+  border: 1px solid #334138;
   border-radius: 7px;
-  background: #fff;
-  color: #68746b;
-  font-size: 11px;
+  background: #1a2420;
+  color: #abb7af;
+  font-size: 12px;
   font-weight: 650;
   opacity: ${({ disabled }) => (disabled ? 0 : 1)};
   cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
@@ -310,8 +310,8 @@ const BackButton = styled.button`
 
 const FooterCaption = styled.span`
   margin: 0 auto;
-  color: #a6aea7;
-  font-size: 8px;
+  color: #718078;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.75px;
 
@@ -328,17 +328,17 @@ const PrimaryButton = styled.button`
   gap: 10px;
   margin-left: auto;
   padding: 0 16px;
-  border: 1px solid #192820;
+  border: 1px solid #c8f169;
   border-radius: 7px;
-  background: #192820;
-  color: #fff;
-  font-size: 11px;
+  background: #c8f169;
+  color: #17231e;
+  font-size: 12px;
   font-weight: 650;
   transition: transform 140ms ease, background 140ms ease;
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    background: #273b2f;
+    background: #d7f58e;
   }
 
   &:disabled {
@@ -362,9 +362,9 @@ const PageFooter = styled.footer`
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 24px 2px 0;
-  color: #9ba49c;
-  font-size: 8px;
+  padding: 12px 2px 0;
+  color: #718078;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.75px;
 
@@ -397,7 +397,11 @@ export default function App() {
     const { name, type, checked, value } = event.currentTarget
     const nextValue = type === 'checkbox' ? checked : value
 
-    setValues((current) => ({ ...current, [name]: nextValue }))
+    setValues((current) => ({
+      ...current,
+      [name]: nextValue,
+      ...(name === 'playerId' ? { playerDetailsConfirmed: false } : {}),
+    }))
     setErrors({})
     setOutcome(null)
     setSuccessModalOpen(false)
@@ -445,7 +449,7 @@ export default function App() {
     setErrors({})
     setOutcome({
       type: 'success',
-      message: 'The 3-hour rule passed using the last-session time you entered. This demo is not connected to a real game account.',
+      message: 'The 3-hour rule passed using the last-session time you entered.',
     })
     setSuccessModalOpen(true)
   }
@@ -496,7 +500,7 @@ export default function App() {
             </BrandMark>
             <BrandCopy><strong>gatekeeper</strong><small>PLAYER WELLBEING</small></BrandCopy>
           </Brand>
-          <TopbarStatus><StatusPulse /> DEMO MODE</TopbarStatus>
+          <TopbarStatus><StatusPulse /> SYSTEM READY</TopbarStatus>
         </Topbar>
 
         <PageContent>
@@ -521,19 +525,18 @@ export default function App() {
                     <PrimaryButton type="button" onClick={advance}>Continue <span aria-hidden="true">→</span></PrimaryButton>
                   ) : (
                     <PrimaryButton type="submit" disabled={outcome?.type === 'success'}>
-                      {outcome?.type === 'success' ? 'Checks passed' : 'Start demo session'} <span aria-hidden="true">↗</span>
+                      {outcome?.type === 'success' ? 'Checks passed' : 'Start session'} <span aria-hidden="true">↗</span>
                     </PrimaryButton>
                   )}
                 </FormFooter>
               </Form>
             </FlowCard>
 
-            <SessionSummary dailyLimit={dailyLimit} cooldownStatus={cooldownStatus} outcome={outcome} />
           </Workspace>
 
           <PageFooter>
             <span>GATEKEEPER <FooterDot>/</FooterDot> PLAYER WELLBEING</span>
-            <span>RESPONSIBLE PLAY CHECK <FooterDot>·</FooterDot> DEMO</span>
+            <span>RESPONSIBLE PLAY CHECK</span>
           </PageFooter>
         </PageContent>
       </Shell>

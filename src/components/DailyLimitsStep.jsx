@@ -20,12 +20,12 @@ import {
 } from './FormPrimitives'
 
 const LastPlayedStatus = styled.div`
-  padding: 11px 12px;
-  border: 1px solid ${({ $tone }) => ($tone === 'error' ? '#efd8d4' : $tone === 'cooling' ? '#f0dfc8' : $tone === 'clear' ? '#dce8d3' : '#e1e6e0')};
+  padding: 9px 12px;
+  border: 1px solid ${({ $tone }) => ($tone === 'error' ? '#70433e' : $tone === 'cooling' ? '#685436' : $tone === 'clear' ? '#47613a' : '#334138')};
   border-radius: 7px;
-  background: ${({ $tone }) => ($tone === 'error' ? '#fff5f3' : $tone === 'cooling' ? '#fff8ef' : $tone === 'clear' ? '#f3f8ee' : '#f8faf6')};
-  color: ${({ $tone }) => ($tone === 'error' ? '#a34f45' : $tone === 'cooling' ? '#93662e' : $tone === 'clear' ? '#4f7435' : '#68766a')};
-  font-size: 11px;
+  background: ${({ $tone }) => ($tone === 'error' ? '#2d1d1a' : $tone === 'cooling' ? '#2b251a' : $tone === 'clear' ? '#1e281b' : '#1a2420')};
+  color: ${({ $tone }) => ($tone === 'error' ? '#f09a8e' : $tone === 'cooling' ? '#d8bd89' : $tone === 'clear' ? '#b1d28a' : '#abb7af')};
+  font-size: 12px;
   line-height: 1.55;
   overflow-wrap: anywhere;
 `
@@ -36,12 +36,12 @@ export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, on
       <PanelHeading>
         <PanelKicker>STEP 02 <span>—</span> TIME &amp; SESSION LIMITS</PanelKicker>
         <PanelTitle id="limits-heading">Keep within your limits.</PanelTitle>
-        <PanelDescription>Check how many sessions you’ve played today, your deposit, and your cooling time.</PanelDescription>
+        <PanelDescription>Check which session this is today, your deposit, and your cooling time.</PanelDescription>
       </PanelHeading>
       <FieldGrid>
         <Field>
-          <FieldLabel htmlFor="sessions-today">Sessions already played today <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
-          <TextInput id="sessions-today" name="sessionsToday" type="number" min="0" max={dailyLimit} step="1" placeholder="0" inputMode="numeric" value={values.sessionsToday} onChange={onChange} aria-invalid={Boolean(errors.sessionsToday)} required />
+          <FieldLabel htmlFor="sessions-today">Current session for the day <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
+          <TextInput id="sessions-today" name="sessionsToday" type="number" min="1" max={dailyLimit} step="1" placeholder="1" inputMode="numeric" value={values.sessionsToday} onChange={onChange} aria-invalid={Boolean(errors.sessionsToday)} required />
           {errors.sessionsToday ? <ErrorMessage>{errors.sessionsToday}</ErrorMessage> : <Hint>Today’s limit: {dailyLimit} sessions.</Hint>}
         </Field>
         <Field>
