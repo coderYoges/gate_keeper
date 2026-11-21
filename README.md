@@ -30,6 +30,19 @@ Decision Module returns success, failure, or request more data.
 On success, Database Logger updates analytics tables.
 Response Manager sends final output to the game engine.
 
+## Responsible-play checks
+
+The pre-session demo asks players to check their mental and emotional readiness, daily session count, deposit amount, and cooling period. It also checks the planned game limits and asks players to acknowledge the stop-loss and stop-win rules:
+
+- Maximum 2 sessions on weekdays and 4 on weekends.
+- At least 3 hours between sessions.
+- Maximum INR 15,000 deposited per session.
+- Slot amounts up to INR 50 and no more than 3 slot games per session.
+- Roulette base amount up to INR 200.
+- Stop and exit if losses exceed 50% of the session deposit or profit reaches INR 1,000.
+
+The demo Player IDs come from the `PLAYER_IDS` constant. After a successful check, the app saves that ID's last-played timestamp in browser local storage and blocks another check until 3 hours have passed. This local record is specific to the current browser and can be cleared; it does not connect to a game account, monitor live play, or provide enforceable spending/session controls. Production enforcement requires trusted server-side session and game data.
+
 ## Deploy to GitHub Pages
 
 The GitHub Actions workflow builds and deploys the site whenever changes are pushed to `main`.
