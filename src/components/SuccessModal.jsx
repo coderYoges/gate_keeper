@@ -25,7 +25,7 @@ export function SuccessModal({ message, onOkay }) {
       }}
     >
       <ModalDialog role="dialog" aria-modal="true" aria-labelledby="success-title" aria-describedby="success-message">
-        <h2 id="success-title">Session recorded</h2>
+        <h2 id="success-title">Checks passed</h2>
         <p id="success-message">{message}</p>
         <ModalActions>
           <ModalButton ref={okayButtonRef} $primary type="button" onClick={onOkay}>Okay</ModalButton>

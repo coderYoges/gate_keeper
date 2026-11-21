@@ -1,76 +1,17 @@
 import { DAILY_SESSION_LIMITS, PLAYER_IDS, SESSION_RULES } from '../constants.js'
 
-const LAST_PLAYED_STORAGE_KEY = 'gatekeeper:last-played:'
-
 export function getDailyLimit(date = new Date()) {
   const day = date.getDay()
   return day === 0 || day === 6 ? DAILY_SESSION_LIMITS.weekend : DAILY_SESSION_LIMITS.weekday
 }
 
-export function getLastPlayed(playerId) {
-  if (!playerId) return { timestamp: null }
-
-  try {
-    const storedTime = localStorage.getItem(`${LAST_PLAYED_STORAGE_KEY}${playerId}`)
-    if (storedTime === null) return { timestamp: null }
-
-    const timestamp = Number(storedTime)
-    if (!Number.isFinite(timestamp) || timestamp <= 0) {
-      return { error: 'The saved last-played time is invalid. Clear this demo’s saved site data to continue.' }
-    }
-
-    return { timestamp }
-  } catch {
-    return { error: 'Browser storage is unavailable, so the last-played time cannot be verified.' }
-  }
+export function getCooldownStatus(cooldownConfirmed) {
+  return cooldownConfirmed
+    ? { tone: 'clear', text: 'You confirmed that at least 3 hours have passed since your last session.', remainingMs: 0 }
+    : { tone: 'neutral', text: 'Confirm that at least 3 hours have passed since your last session.', remainingMs: null }
 }
 
-export function recordLastPlayed(playerId, timestamp = Date.now()) {
-  try {
-    localStorage.setItem(`${LAST_PLAYED_STORAGE_KEY}${playerId}`, String(timestamp))
-    return null
-  } catch {
-    return 'Browser storage is unavailable, so the demo session could not be recorded.'
-  }
-}
-
-export function formatRemainingTime(milliseconds) {
-  const totalMinutes = Math.ceil(milliseconds / 60000)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  return hours ? `${hours}h ${minutes}m` : `${minutes}m`
-}
-
-export function getCooldownStatus(lastPlayed, now = Date.now()) {
-  if (lastPlayed.error) return { tone: 'error', text: lastPlayed.error, remainingMs: null }
-  if (lastPlayed.timestamp === null) {
-    return { tone: 'clear', text: 'No demo session has been recorded for this player ID.', remainingMs: 0 }
-  }
-
-  const playedAt = new Date(lastPlayed.timestamp)
-  if (!Number.isFinite(playedAt.getTime()) || playedAt.getTime() > now) {
-    return { tone: 'error', text: 'The saved last-played time is invalid or in the future.', remainingMs: null }
-  }
-
-  const remainingMs = SESSION_RULES.cooldownMs - (now - lastPlayed.timestamp)
-  const formattedTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(playedAt)
-
-  if (remainingMs > 0) {
-    return {
-      tone: 'cooling',
-      text: `Last played ${formattedTime}. Wait ${formatRemainingTime(remainingMs)} before starting another session.`,
-      remainingMs,
-    }
-  }
-
-  return {
-    tone: 'clear',
-    text: `Last played ${formattedTime}. The 3-hour cooling period is complete.`,
-    remainingMs: 0,
-  }
-}
-
-export function validateStep(step, values, lastPlayed, dailyLimit) {
+export function validateStep(step, values, dailyLimit) {
   if (step === 0) {
     if (!PLAYER_IDS.includes(values.playerId)) {
       return { field: 'playerId', message: 'Select a player ID from the list.' }
@@ -100,17 +41,10 @@ export function validateStep(step, values, lastPlayed, dailyLimit) {
       return { field: 'depositAmount', message: 'The deposit limit is ₹15,000 per user per session.' }
     }
 
-    if (lastPlayed.error) return { field: 'cooldown', message: lastPlayed.error }
-    if (lastPlayed.timestamp !== null) {
-      const elapsed = Date.now() - lastPlayed.timestamp
-      if (elapsed < 0) {
-        return { field: 'cooldown', message: 'The saved last-played time is in the future. Clear this demo’s saved site data to continue.' }
-      }
-      if (elapsed < SESSION_RULES.cooldownMs) {
-        return {
-          field: 'cooldown',
-          message: `The 3-hour cooling period has not ended. Wait ${formatRemainingTime(SESSION_RULES.cooldownMs - elapsed)} before starting another session.`,
-        }
+    if (!values.cooldownConfirmed) {
+      return {
+        field: 'cooldownConfirmed',
+        message: 'Confirm that at least 3 hours have passed since your last session.',
       }
     }
   }

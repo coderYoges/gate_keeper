@@ -34,7 +34,7 @@ Response Manager sends final output to the game engine.
 
 The interface is built from reusable React components in `src/components`, with styling defined using `styled-components`.
 
-The pre-session demo asks players to check their mental and emotional readiness, daily session count, deposit amount, and cooling period. It also checks the planned game limits and asks players to acknowledge the stop-loss and stop-win rules:
+The pre-session demo asks players to check their mental and emotional readiness, daily session count, deposit amount, and cooling period. Players confirm with a checkbox that at least 3 hours have passed since their last session. It also checks the planned game limits and asks players to acknowledge the stop-loss and stop-win rules:
 
 - Maximum 2 sessions on weekdays and 4 on weekends.
 - At least 3 hours between sessions.
@@ -43,7 +43,7 @@ The pre-session demo asks players to check their mental and emotional readiness,
 - Roulette base amount up to INR 200.
 - Stop and exit if losses exceed 50% of the session deposit or profit reaches INR 1,000.
 
-The demo Player IDs come from the `PLAYER_IDS` constant. After a successful check, the app saves that ID's last-played timestamp in browser local storage and blocks another check until 3 hours have passed. This local record is specific to the current browser and can be cleared; it does not connect to a game account, monitor live play, or provide enforceable spending/session controls. Production enforcement requires trusted server-side session and game data.
+The demo Player IDs come from the `PLAYER_IDS` constant. The cooling-period checkbox is self-reported: it is not verified against actual play, fetched from a game account, or saved in browser storage. The app does not monitor live play or provide enforceable spending/session controls. Production enforcement requires trusted server-side session and game data.
 
 ## Deploy to GitHub Pages
 

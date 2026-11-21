@@ -1,5 +1,7 @@
 import styled from 'styled-components'
 import {
+  Checkbox,
+  ChoiceCard,
   CurrencyPrefix,
   ErrorMessage,
   Field,
@@ -14,16 +16,15 @@ import {
   PanelKicker,
   PanelTitle,
   RequiredTag,
-  SelectInput,
   TextInput,
 } from './FormPrimitives'
 
 const LastPlayedStatus = styled.div`
   padding: 11px 12px;
-  border: 1px solid ${({ $tone }) => ($tone === 'error' ? '#efd8d4' : $tone === 'cooling' ? '#f0dfc8' : '#dce8d3')};
+  border: 1px solid ${({ $tone }) => ($tone === 'error' ? '#efd8d4' : $tone === 'cooling' ? '#f0dfc8' : $tone === 'clear' ? '#dce8d3' : '#e1e6e0')};
   border-radius: 7px;
-  background: ${({ $tone }) => ($tone === 'error' ? '#fff5f3' : $tone === 'cooling' ? '#fff8ef' : '#f3f8ee')};
-  color: ${({ $tone }) => ($tone === 'error' ? '#a34f45' : $tone === 'cooling' ? '#93662e' : '#4f7435')};
+  background: ${({ $tone }) => ($tone === 'error' ? '#fff5f3' : $tone === 'cooling' ? '#fff8ef' : $tone === 'clear' ? '#f3f8ee' : '#f8faf6')};
+  color: ${({ $tone }) => ($tone === 'error' ? '#a34f45' : $tone === 'cooling' ? '#93662e' : $tone === 'clear' ? '#4f7435' : '#68766a')};
   font-size: 11px;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -52,9 +53,17 @@ export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, on
           {errors.depositAmount ? <ErrorMessage>{errors.depositAmount}</ErrorMessage> : <Hint>Maximum deposit: ₹15,000 per user per session.</Hint>}
         </Field>
         <Field $wide>
-          <FieldLabel>Last played / 3-hour cooling period</FieldLabel>
+          <FieldLabel>3-hour cooling period <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
+          <ChoiceCard>
+            <Checkbox id="cooldown-confirmed" name="cooldownConfirmed" checked={values.cooldownConfirmed} onChange={onChange} aria-invalid={Boolean(errors.cooldownConfirmed)} />
+            <span>
+              <strong>Cooling-period check</strong>
+              <small>I confirm at least 3 hours have passed since my last session.</small>
+              {errors.cooldownConfirmed && <ErrorMessage role="alert">{errors.cooldownConfirmed}</ErrorMessage>}
+            </span>
+          </ChoiceCard>
           <LastPlayedStatus $tone={cooldownStatus.tone} aria-live="polite">{cooldownStatus.text}</LastPlayedStatus>
-          {errors.cooldown ? <ErrorMessage role="alert">{errors.cooldown}</ErrorMessage> : <Hint>This demo saves the last played time in this browser for the selected player ID.</Hint>}
+          <Hint>This is self-reported and is not checked against a game account.</Hint>
         </Field>
       </FieldGrid>
       <InlineNote><NoteIcon aria-hidden="true">i</NoteIcon>Weekday limit: 2 sessions. Weekend limit: 4 sessions. Wait at least 3 hours between sessions.</InlineNote>

@@ -193,13 +193,13 @@ const TipCard = styled.div`
 
 export function SessionSummary({ dailyLimit, cooldownStatus, outcome }) {
   const statusTitle = outcome?.type === 'success'
-    ? 'Demo session recorded'
-    : cooldownStatus.tone === 'cooling'
-      ? 'Cooling period'
+    ? 'Checks passed'
+    : cooldownStatus.tone === 'clear'
+      ? 'Cooling period confirmed'
       : 'Not started'
 
   const statusCopy = outcome?.type === 'success'
-    ? 'Last-played time saved. The 3-hour cooling period now applies.'
+    ? 'Your pre-session checks passed using the answers you provided.'
     : outcome?.type === 'error'
       ? outcome.message
       : cooldownStatus.text

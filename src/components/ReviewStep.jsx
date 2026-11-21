@@ -103,7 +103,7 @@ const OutcomeCopy = styled.div`
   }
 `
 
-export function ReviewStep({ values, outcome, cooldownStatus }) {
+export function ReviewStep({ values, outcome }) {
   const gamePlan = {
     slots: `Slots: ${values.slotGames} games at ${values.slotBet ? `₹${values.slotBet}` : '—'} each`,
     roulette: `Roulette: base amount ₹${values.rouletteBase || '—'}`,
@@ -124,7 +124,7 @@ export function ReviewStep({ values, outcome, cooldownStatus }) {
         <ReviewRow><ReviewLabel>PLAYER ID</ReviewLabel><ReviewValue>{values.playerId || '—'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>SESSIONS TODAY</ReviewLabel><ReviewValue>{values.sessionsToday}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>SESSION DEPOSIT</ReviewLabel><ReviewValue>₹{values.depositAmount || '—'}</ReviewValue></ReviewRow>
-        <ReviewRow><ReviewLabel>LAST PLAYED</ReviewLabel><ReviewValue>{cooldownStatus.tone === 'clear' ? 'Cooling period clear' : cooldownStatus.tone === 'cooling' ? 'Cooling period active' : 'Not verified'}</ReviewValue></ReviewRow>
+        <ReviewRow><ReviewLabel>3-HOUR COOLING PERIOD</ReviewLabel><ReviewValue>{values.cooldownConfirmed ? 'Confirmed by you' : 'Not confirmed'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>GAME PLAN</ReviewLabel><ReviewValue>{gamePlan}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>PLAYER POSITION</ReviewLabel><ReviewValue>{values.positionConfirm ? 'Confirmed' : '—'}</ReviewValue></ReviewRow>
       </ReviewList>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import styled from 'styled-components'
 import { PLAYER_IDS, STEP_LABELS } from './constants'
 import { DailyLimitsStep } from './components/DailyLimitsStep'
@@ -13,8 +13,6 @@ import { GlobalStyles } from './styles/GlobalStyles'
 import {
   getCooldownStatus,
   getDailyLimit,
-  getLastPlayed,
-  recordLastPlayed,
   validateStep,
 } from './utils/sessionChecks'
 
@@ -23,6 +21,7 @@ const initialValues = {
   mentalState: '',
   sessionsToday: '',
   depositAmount: '',
+  cooldownConfirmed: false,
   gameType: '',
   slotBet: '',
   slotGames: '',
@@ -380,24 +379,19 @@ const FooterDot = styled.span`
   color: #bac3b8;
 `
 
-function getStepError(step, values, lastPlayed, dailyLimit) {
-  return validateStep(step, values, lastPlayed, dailyLimit)
+function getStepError(step, values, dailyLimit) {
+  return validateStep(step, values, dailyLimit)
 }
 
 export default function App() {
   const [values, setValues] = useState(initialValues)
   const [currentStep, setCurrentStep] = useState(0)
   const [errors, setErrors] = useState({})
-  const [lastPlayed, setLastPlayed] = useState({ timestamp: null })
   const [outcome, setOutcome] = useState(null)
   const [failureMessage, setFailureMessage] = useState(null)
   const [successModalOpen, setSuccessModalOpen] = useState(false)
   const dailyLimit = getDailyLimit()
-  const cooldownStatus = getCooldownStatus(lastPlayed)
-
-  useEffect(() => {
-    setLastPlayed(getLastPlayed(values.playerId))
-  }, [values.playerId])
+  const cooldownStatus = getCooldownStatus(values.cooldownConfirmed)
 
   function handleChange(event) {
     const { name, type, checked, value } = event.currentTarget
@@ -407,17 +401,10 @@ export default function App() {
     setErrors({})
     setOutcome(null)
     setSuccessModalOpen(false)
-
-    if (name === 'playerId') {
-      setLastPlayed(getLastPlayed(value))
-    }
   }
 
   function validateCurrentStep(step) {
-    const history = step === 1 ? getLastPlayed(values.playerId) : lastPlayed
-    if (step === 1) setLastPlayed(history)
-
-    const error = getStepError(step, values, history, dailyLimit)
+    const error = getStepError(step, values, dailyLimit)
     setErrors(error ? { [error.field]: error.message } : {})
     return error
   }
@@ -426,7 +413,6 @@ export default function App() {
     setValues(initialValues)
     setCurrentStep(0)
     setErrors({})
-    setLastPlayed({ timestamp: null })
     setOutcome(null)
     setFailureMessage(null)
     setSuccessModalOpen(false)
@@ -456,18 +442,10 @@ export default function App() {
       return
     }
 
-    const timestamp = Date.now()
-    const storageError = recordLastPlayed(values.playerId, timestamp)
-    if (storageError) {
-      setOutcome({ type: 'error', message: storageError })
-      return
-    }
-
-    setLastPlayed({ timestamp })
     setErrors({})
     setOutcome({
       type: 'success',
-      message: 'The demo session is recorded and its last-played time is saved in this browser. This is not connected to a real game.',
+      message: 'The 3-hour rule passed using the last-session time you entered. This demo is not connected to a real game account.',
     })
     setSuccessModalOpen(true)
   }
@@ -491,7 +469,7 @@ export default function App() {
     <ReadinessStep key="readiness" playerIds={PLAYER_IDS} values={values} errors={errors} onChange={handleChange} />,
     <DailyLimitsStep key="limits" values={values} errors={errors} dailyLimit={dailyLimit} cooldownStatus={cooldownStatus} onChange={handleChange} />,
     <GamePlanStep key="game-plan" values={values} errors={errors} onChange={handleChange} />,
-    <ReviewStep key="review" values={values} outcome={outcome} cooldownStatus={cooldownStatus} />,
+    <ReviewStep key="review" values={values} outcome={outcome} />,
   ][currentStep]
 
   return (
@@ -543,7 +521,7 @@ export default function App() {
                     <PrimaryButton type="button" onClick={advance}>Continue <span aria-hidden="true">→</span></PrimaryButton>
                   ) : (
                     <PrimaryButton type="submit" disabled={outcome?.type === 'success'}>
-                      {outcome?.type === 'success' ? 'Session recorded' : 'Start demo session'} <span aria-hidden="true">↗</span>
+                      {outcome?.type === 'success' ? 'Checks passed' : 'Start demo session'} <span aria-hidden="true">↗</span>
                     </PrimaryButton>
                   )}
                 </FormFooter>
