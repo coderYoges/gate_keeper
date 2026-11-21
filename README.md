@@ -52,5 +52,3 @@ The GitHub Actions workflow builds and deploys the site whenever changes are pus
 1. Push the project to the `main` branch on GitHub.
 2. In the repository, open **Settings → Pages** and set the build and deployment source to **GitHub Actions**.
 3. Open the **Actions** tab and wait for the **Deploy to GitHub Pages** workflow to finish.
-
-The site will be available at `https://coderyoges.github.io/gate_keeper/`.
