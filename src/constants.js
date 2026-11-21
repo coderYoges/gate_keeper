@@ -57,11 +57,31 @@ export const DAILY_SESSION_LIMITS = {
 
 export const SESSION_RULES = {
   depositMax: 15000,
-  slotBetMax: 50,
-  slotGamesMax: 3,
   rouletteBaseMax: 200,
   stopLossPercent: 0.5,
   stopWin: 1000,
 }
+
+export const SLOT_PLAY_STAGES = [
+  { plays: 10, amounts: [10, 12.5] },
+  { plays: 10, amounts: [20, 25] },
+  { plays: 10, amounts: [40] },
+  { plays: 10, amounts: [50] },
+]
+
+export const SLOT_GAME_NAMES = [
+  'Scrab Temple',
+  '777 Burning wins',
+  'Diamond Jokers',
+  'Inferno 777',
+]
+
+export const ROULETTE_GAME_NAMES = [
+  'Mostbet Indian Roulette',
+  'European Roulette',
+  'RM European Roulette',
+  'Mostbet Roulette',
+  'Roulette VIP - Ring',
+]
 
 export const STEP_LABELS = ['Readiness', 'Daily limits', 'Game plan', 'Review']

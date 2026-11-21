@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import styled from 'styled-components'
-import { PLAYER_IDS, STEP_LABELS } from './constants'
+import { PLAYER_IDS, SLOT_PLAY_STAGES, STEP_LABELS } from './constants'
 import { DailyLimitsStep } from './components/DailyLimitsStep'
 import { FailureModal } from './components/FailureModal'
 import { GamePlanStep } from './components/GamePlanStep'
@@ -23,12 +23,21 @@ const initialValues = {
   depositAmount: '',
   cooldownConfirmed: false,
   gameType: '',
-  slotBet: '',
-  slotGames: '',
+  gameName: '',
   rouletteBase: '',
-  positionConfirm: false,
-  stopLossCheck: false,
-  stopWinCheck: false,
+  playedGames: [],
+  completedGames: [],
+  slotGameStopped: false,
+}
+
+function createPlayedGame(index, isSlot) {
+  const stage = SLOT_PLAY_STAGES[Math.floor(index / 10)]
+  return {
+    instance: String(index + 1),
+    amount: isSlot && stage ? String(stage.amounts[0]) : '',
+    placed: '',
+    status: 'pending',
+  }
 }
 
 const Shell = styled.div`
@@ -395,12 +404,79 @@ export default function App() {
 
   function handleChange(event) {
     const { name, type, checked, value } = event.currentTarget
+    if (name === 'depositAmount' && value !== '' && !/^\d+$/.test(value)) return
+
     const nextValue = type === 'checkbox' ? checked : value
 
     setValues((current) => ({
       ...current,
       [name]: nextValue,
       ...(name === 'playerId' ? { playerDetailsConfirmed: false } : {}),
+      ...(name === 'gameType' ? {
+        gameName: '',
+        playedGames: [],
+        completedGames: [],
+        slotGameStopped: false,
+      } : {}),
+    }))
+    setErrors({})
+    setOutcome(null)
+    setSuccessModalOpen(false)
+  }
+
+  function updatePlayedGame(index, field, value) {
+    setValues((current) => {
+      const playedGames = current.playedGames.map((game, gameIndex) => (
+        gameIndex === index ? { ...game, [field]: value } : game
+      ))
+      const slotGameStopped = current.gameType === 'slots'
+        && playedGames.some((game, gameIndex) => game.status === 'won' && gameIndex % 10 < 9)
+
+      return { ...current, playedGames, slotGameStopped }
+    })
+    setErrors({})
+    setOutcome(null)
+    setSuccessModalOpen(false)
+  }
+
+  function addPlayedGame() {
+    setValues((current) => {
+      const lastGame = current.playedGames[current.playedGames.length - 1]
+      if (!current.gameName.trim() || current.slotGameStopped || current.playedGames.length >= 40) return current
+      if (lastGame && (lastGame.status === 'pending' || !lastGame.placed.trim())) return current
+
+      return {
+        ...current,
+        playedGames: [...current.playedGames, createPlayedGame(current.playedGames.length, current.gameType === 'slots')],
+      }
+    })
+    setErrors({})
+    setOutcome(null)
+    setSuccessModalOpen(false)
+  }
+
+  function removePlayedGame(index) {
+    setValues((current) => {
+      if (index !== current.playedGames.length - 1) return current
+      const playedGames = current.playedGames.slice(0, -1)
+      const slotGameStopped = current.gameType === 'slots'
+        && playedGames.some((game, gameIndex) => game.status === 'won' && gameIndex % 10 < 9)
+      return { ...current, playedGames, slotGameStopped }
+    })
+    setErrors({})
+    setOutcome(null)
+    setSuccessModalOpen(false)
+  }
+
+  function startNewSlotGame() {
+    setValues((current) => ({
+      ...current,
+      completedGames: current.gameName && current.playedGames.length
+        ? [...current.completedGames, { gameName: current.gameName, playedGames: current.playedGames }]
+        : current.completedGames,
+      gameName: '',
+      playedGames: [],
+      slotGameStopped: false,
     }))
     setErrors({})
     setOutcome(null)
@@ -425,6 +501,7 @@ export default function App() {
   function advance() {
     const error = validateCurrentStep(currentStep)
     if (error) {
+      if (error.field === 'playedGames' || error.field === 'slotGameStopped') return
       setFailureMessage(error.message)
       return
     }
@@ -472,7 +549,16 @@ export default function App() {
   const stepContent = [
     <ReadinessStep key="readiness" playerIds={PLAYER_IDS} values={values} errors={errors} onChange={handleChange} />,
     <DailyLimitsStep key="limits" values={values} errors={errors} dailyLimit={dailyLimit} cooldownStatus={cooldownStatus} onChange={handleChange} />,
-    <GamePlanStep key="game-plan" values={values} errors={errors} onChange={handleChange} />,
+    <GamePlanStep
+      key="game-plan"
+      values={values}
+      errors={errors}
+      onChange={handleChange}
+      onPlayedGameChange={updatePlayedGame}
+      onAddPlayedGame={addPlayedGame}
+      onRemovePlayedGame={removePlayedGame}
+      onStartNewSlotGame={startNewSlotGame}
+    />,
     <ReviewStep key="review" values={values} outcome={outcome} />,
   ][currentStep]
 

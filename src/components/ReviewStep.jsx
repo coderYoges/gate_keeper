@@ -106,9 +106,9 @@ const OutcomeCopy = styled.div`
 export function ReviewStep({ values, outcome }) {
   const player = PLAYER_IDS.find((item) => item.playerId === values.playerId)
   const gamePlan = {
-    slots: `Slots: ${values.slotGames} games at ${values.slotBet ? `₹${values.slotBet}` : '—'} each`,
-    roulette: `Roulette: base amount ₹${values.rouletteBase || '—'}`,
-    both: `Slots: ${values.slotGames} games at ₹${values.slotBet} each; roulette: ₹${values.rouletteBase}`,
+    slots: `Slots (${values.gameName}): ${values.playedGames.length}/40 instances tracked`,
+    roulette: `Roulette (${values.gameName}): base amount ₹${values.rouletteBase || '—'}`,
+    both: `${values.gameName}: ${values.playedGames.length}/40 slot instances; roulette base ₹${values.rouletteBase}`,
   }[values.gameType] || '—'
 
   const deposit = Number(values.depositAmount)
@@ -131,7 +131,6 @@ export function ReviewStep({ values, outcome }) {
         <ReviewRow><ReviewLabel>SESSION DEPOSIT</ReviewLabel><ReviewValue>₹{values.depositAmount || '—'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>3-HOUR COOLING PERIOD</ReviewLabel><ReviewValue>{values.cooldownConfirmed ? 'Confirmed by you' : 'Not confirmed'}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>GAME PLAN</ReviewLabel><ReviewValue>{gamePlan}</ReviewValue></ReviewRow>
-        <ReviewRow><ReviewLabel>PLAYER POSITION</ReviewLabel><ReviewValue>{values.positionConfirm ? 'Confirmed' : '—'}</ReviewValue></ReviewRow>
       </ReviewList>
       <RiskSummary>
         <RiskSummaryItem><strong>STOP LOSS</strong><span>Exit above 50% loss (₹{stopLoss})</span></RiskSummaryItem>

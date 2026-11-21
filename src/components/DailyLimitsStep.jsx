@@ -48,7 +48,7 @@ export function DailyLimitsStep({ values, errors, dailyLimit, cooldownStatus, on
           <FieldLabel htmlFor="deposit-amount">Deposit for this session <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
           <InputGroup>
             <CurrencyPrefix>₹</CurrencyPrefix>
-            <TextInput id="deposit-amount" name="depositAmount" type="number" min="0.01" max="15000" step="0.01" placeholder="0.00" inputMode="decimal" value={values.depositAmount} onChange={onChange} aria-invalid={Boolean(errors.depositAmount)} required />
+            <TextInput id="deposit-amount" name="depositAmount" type="number" min="1" max="15000" step="1" placeholder="0" inputMode="numeric" value={values.depositAmount} onChange={onChange} aria-invalid={Boolean(errors.depositAmount)} required />
           </InputGroup>
           {errors.depositAmount ? <ErrorMessage>{errors.depositAmount}</ErrorMessage> : <Hint>Maximum deposit: ₹15,000 per user per session.</Hint>}
         </Field>

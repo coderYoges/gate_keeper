@@ -1,4 +1,4 @@
-import { DAILY_SESSION_LIMITS, PLAYER_IDS, SESSION_RULES } from '../constants.js'
+import { DAILY_SESSION_LIMITS, PLAYER_IDS, SESSION_RULES, SLOT_PLAY_STAGES } from '../constants.js'
 
 export function getDailyLimit(date = new Date()) {
   const day = date.getDay()
@@ -37,8 +37,8 @@ export function validateStep(step, values, dailyLimit) {
     }
 
     const deposit = Number(values.depositAmount)
-    if (!Number.isFinite(deposit) || deposit <= 0) {
-      return { field: 'depositAmount', message: 'Enter a deposit greater than ₹0.' }
+    if (!Number.isInteger(deposit) || deposit <= 0) {
+      return { field: 'depositAmount', message: 'Enter a whole-rupee deposit greater than ₹0.' }
     }
     if (deposit > SESSION_RULES.depositMax) {
       return { field: 'depositAmount', message: 'The deposit limit is ₹15,000 per user per session.' }
@@ -56,18 +56,32 @@ export function validateStep(step, values, dailyLimit) {
     if (!['slots', 'roulette', 'both'].includes(values.gameType)) {
       return { field: 'gameType', message: 'Choose the games planned for this session.' }
     }
-    if (!values.positionConfirm) {
-      return { field: 'positionConfirm', message: 'Confirm that you will play only in your assigned position.' }
+    if (!values.gameName?.trim()) {
+      return { field: 'gameName', message: 'Enter the name of the game you plan to play.' }
     }
-
-    if (values.gameType === 'slots' || values.gameType === 'both') {
-      const bet = Number(values.slotBet)
-      const slotGames = Number(values.slotGames)
-      if (!Number.isFinite(bet) || bet <= 0 || bet > SESSION_RULES.slotBetMax) {
-        return { field: 'slotBet', message: 'Slot amounts must be greater than ₹0 and no more than ₹50.' }
+    if (values.gameType === 'slots') {
+      if (values.slotGameStopped) {
+        return { field: 'slotGameStopped', message: 'Start a new slot game after recording an early win.' }
       }
-      if (!Number.isInteger(slotGames) || slotGames < 1 || slotGames > SESSION_RULES.slotGamesMax) {
-        return { field: 'slotGames', message: 'Choose between 1 and 3 slot games per session.' }
+      const requiredPlays = SLOT_PLAY_STAGES.reduce((total, stage) => total + stage.plays, 0)
+      if (values.playedGames.length !== requiredPlays) {
+        return { field: 'playedGames', message: `Record all ${requiredPlays} slot instances before continuing.` }
+      }
+      for (let index = 0; index < values.playedGames.length; index += 1) {
+        const play = values.playedGames[index]
+        const stage = SLOT_PLAY_STAGES[Math.floor(index / 10)]
+        if (!stage.amounts.includes(Number(play.amount))) {
+          return { field: 'playedGames', message: `Choose an allowed amount for slot instance ${index + 1}.` }
+        }
+        if (!play.placed.trim()) {
+          return { field: 'playedGames', message: `Enter what was placed for slot instance ${index + 1}.` }
+        }
+        if (!['won', 'lost'].includes(play.status)) {
+          return { field: 'playedGames', message: `Record the status for slot instance ${index + 1}.` }
+        }
+        if (play.status === 'won' && index % 10 < 9) {
+          return { field: 'slotGameStopped', message: 'A win before completing a 10-play stage requires starting a new slot game.' }
+        }
       }
     }
 
@@ -78,12 +92,6 @@ export function validateStep(step, values, dailyLimit) {
       }
     }
 
-    if (!values.stopLossCheck) {
-      return { field: 'stopLossCheck', message: 'Confirm the 50% stop-loss rule before continuing.' }
-    }
-    if (!values.stopWinCheck) {
-      return { field: 'stopWinCheck', message: 'Confirm the ₹1,000 stop-win rule before continuing.' }
-    }
   }
 
   return null
