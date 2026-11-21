@@ -19,6 +19,7 @@ import {
   SelectInput,
   TextInput,
 } from './FormPrimitives'
+import { SESSION_RULES } from '../constants'
 
 const ConditionalGrid = styled(FieldGrid)`
   grid-column: 1 / -1;
@@ -28,16 +29,35 @@ const ConditionalGrid = styled(FieldGrid)`
   }
 `
 
+const RiskLimitGroup = styled.div`
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 8px;
+
+  @media (max-width: 600px) {
+    grid-column: auto;
+  }
+`
+
+const RiskLimitTitle = styled.h3`
+  margin: 0;
+  color: #38443c;
+  font-size: 11px;
+  font-weight: 650;
+`
+
 export function GamePlanStep({ values, errors, onChange }) {
   const includeSlots = values.gameType === 'slots' || values.gameType === 'both'
   const includeRoulette = values.gameType === 'roulette' || values.gameType === 'both'
+  const stopLoss = Number(values.depositAmount) * SESSION_RULES.stopLossPercent
+  const stopLossAmount = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(stopLoss)
 
   return (
     <section aria-labelledby="game-heading">
       <PanelHeading>
-        <PanelKicker>STEP 03 <span>—</span> GAME-SPECIFIC RULES</PanelKicker>
+        <PanelKicker>STEP 03 <span>—</span> GAME PLAN &amp; RISK LIMITS</PanelKicker>
         <PanelTitle id="game-heading">Set a clear game plan.</PanelTitle>
-        <PanelDescription>Confirm your position and keep each game within its limits.</PanelDescription>
+        <PanelDescription>Confirm your position, game limits, and when you’ll stop.</PanelDescription>
       </PanelHeading>
       <FieldGrid>
         <Field $wide>
@@ -88,6 +108,26 @@ export function GamePlanStep({ values, errors, onChange }) {
             {errors.positionConfirm && <ErrorMessage>{errors.positionConfirm}</ErrorMessage>}
           </span>
         </ChoiceCard>
+
+        <RiskLimitGroup>
+          <RiskLimitTitle>In-session stop limits <RequiredTag>REQUIRED</RequiredTag></RiskLimitTitle>
+          <ChoiceCard>
+            <Checkbox id="stop-loss-check" name="stopLossCheck" checked={values.stopLossCheck} onChange={onChange} aria-invalid={Boolean(errors.stopLossCheck)} />
+            <span>
+              <strong>Stop loss</strong>
+              <small>Stop and exit if losses exceed 50% of your session deposit (₹{stopLossAmount}).</small>
+              {errors.stopLossCheck && <ErrorMessage>{errors.stopLossCheck}</ErrorMessage>}
+            </span>
+          </ChoiceCard>
+          <ChoiceCard>
+            <Checkbox id="stop-win-check" name="stopWinCheck" checked={values.stopWinCheck} onChange={onChange} aria-invalid={Boolean(errors.stopWinCheck)} />
+            <span>
+              <strong>Stop win</strong>
+              <small>Stop and exit once your profit reaches ₹{SESSION_RULES.stopWin.toLocaleString('en-IN')}.</small>
+              {errors.stopWinCheck && <ErrorMessage>{errors.stopWinCheck}</ErrorMessage>}
+            </span>
+          </ChoiceCard>
+        </RiskLimitGroup>
       </FieldGrid>
       <InlineNote><NoteIcon aria-hidden="true">i</NoteIcon>Slot amount: maximum ₹50. Maximum 3 slot games per session. Roulette base amount: maximum ₹200.</InlineNote>
     </section>

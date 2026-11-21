@@ -1,13 +1,11 @@
 import styled from 'styled-components'
 import {
-  Checkbox,
-  ChoiceCard,
-  ErrorMessage,
   PanelDescription,
   PanelHeading,
   PanelKicker,
   PanelTitle,
 } from './FormPrimitives'
+import { SESSION_RULES } from '../constants'
 
 const ReviewList = styled.dl`
   margin: 0;
@@ -38,10 +36,31 @@ const ReviewValue = styled.dd`
   text-align: right;
 `
 
-const RiskChecks = styled.div`
+const RiskSummary = styled.div`
   display: grid;
-  gap: 8px;
+  gap: 10px;
   margin-top: 15px;
+`
+
+const RiskSummaryItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid #e4e9e1;
+  border-radius: 8px;
+  background: #f8faf6;
+
+  strong {
+    color: #3e4b40;
+    font-size: 10px;
+  }
+
+  span {
+    color: #7d887e;
+    font-size: 10px;
+    text-align: right;
+  }
 `
 
 const Outcome = styled.div`
@@ -84,7 +103,7 @@ const OutcomeCopy = styled.div`
   }
 `
 
-export function ReviewStep({ values, errors, outcome, cooldownStatus, onChange }) {
+export function ReviewStep({ values, outcome, cooldownStatus }) {
   const gamePlan = {
     slots: `Slots: ${values.slotGames} games at ${values.slotBet ? `₹${values.slotBet}` : '—'} each`,
     roulette: `Roulette: base amount ₹${values.rouletteBase || '—'}`,
@@ -92,14 +111,14 @@ export function ReviewStep({ values, errors, outcome, cooldownStatus, onChange }
   }[values.gameType] || '—'
 
   const deposit = Number(values.depositAmount)
-  const stopLoss = Number.isFinite(deposit) ? (deposit * 0.5).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0'
+  const stopLoss = Number.isFinite(deposit) ? (deposit * SESSION_RULES.stopLossPercent).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0'
 
   return (
     <section aria-labelledby="review-heading">
       <PanelHeading>
-        <PanelKicker>STEP 04 <span>—</span> RISK MANAGEMENT</PanelKicker>
-        <PanelTitle id="review-heading">Know when to stop.</PanelTitle>
-        <PanelDescription>Review your plan and confirm your stop limits before starting the demo session.</PanelDescription>
+        <PanelKicker>STEP 04 <span>—</span> FINAL REVIEW</PanelKicker>
+        <PanelTitle id="review-heading">Review your session plan.</PanelTitle>
+        <PanelDescription>Confirm the session details and review your stop limits before starting the demo session.</PanelDescription>
       </PanelHeading>
       <ReviewList>
         <ReviewRow><ReviewLabel>PLAYER ID</ReviewLabel><ReviewValue>{values.playerId || '—'}</ReviewValue></ReviewRow>
@@ -109,24 +128,10 @@ export function ReviewStep({ values, errors, outcome, cooldownStatus, onChange }
         <ReviewRow><ReviewLabel>GAME PLAN</ReviewLabel><ReviewValue>{gamePlan}</ReviewValue></ReviewRow>
         <ReviewRow><ReviewLabel>PLAYER POSITION</ReviewLabel><ReviewValue>{values.positionConfirm ? 'Confirmed' : '—'}</ReviewValue></ReviewRow>
       </ReviewList>
-      <RiskChecks>
-        <ChoiceCard>
-          <Checkbox id="stop-loss-check" name="stopLossCheck" checked={values.stopLossCheck} onChange={onChange} aria-invalid={Boolean(errors.stopLossCheck)} />
-          <span>
-            <strong>Stop loss</strong>
-            <small>Stop and exit if losses exceed 50% of your session deposit (₹{stopLoss}).</small>
-            {errors.stopLossCheck && <ErrorMessage>{errors.stopLossCheck}</ErrorMessage>}
-          </span>
-        </ChoiceCard>
-        <ChoiceCard>
-          <Checkbox id="stop-win-check" name="stopWinCheck" checked={values.stopWinCheck} onChange={onChange} aria-invalid={Boolean(errors.stopWinCheck)} />
-          <span>
-            <strong>Stop win</strong>
-            <small>Stop and exit once your profit reaches ₹1,000.</small>
-            {errors.stopWinCheck && <ErrorMessage>{errors.stopWinCheck}</ErrorMessage>}
-          </span>
-        </ChoiceCard>
-      </RiskChecks>
+      <RiskSummary>
+        <RiskSummaryItem><strong>STOP LOSS</strong><span>Exit above 50% loss (₹{stopLoss})</span></RiskSummaryItem>
+        <RiskSummaryItem><strong>STOP WIN</strong><span>Exit at ₹{SESSION_RULES.stopWin.toLocaleString('en-IN')} profit</span></RiskSummaryItem>
+      </RiskSummary>
       {outcome && (
         <Outcome role="status" aria-live="polite" $error={outcome.type === 'error'}>
           <OutcomeIcon $error={outcome.type === 'error'} aria-hidden="true">{outcome.type === 'error' ? '!' : '✓'}</OutcomeIcon>

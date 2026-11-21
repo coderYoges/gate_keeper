@@ -1,4 +1,4 @@
-import { DAILY_SESSION_LIMITS, PLAYER_IDS, SESSION_RULES } from '../constants'
+import { DAILY_SESSION_LIMITS, PLAYER_IDS, SESSION_RULES } from '../constants.js'
 
 const LAST_PLAYED_STORAGE_KEY = 'gatekeeper:last-played:'
 
@@ -140,9 +140,7 @@ export function validateStep(step, values, lastPlayed, dailyLimit) {
         return { field: 'rouletteBase', message: 'The roulette base amount must be greater than ₹0 and no more than ₹200.' }
       }
     }
-  }
 
-  if (step === 3) {
     if (!values.stopLossCheck) {
       return { field: 'stopLossCheck', message: 'Confirm the 50% stop-loss rule before continuing.' }
     }

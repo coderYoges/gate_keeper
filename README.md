@@ -32,6 +32,8 @@ Response Manager sends final output to the game engine.
 
 ## Responsible-play checks
 
+The interface is built from reusable React components in `src/components`, with styling defined using `styled-components`.
+
 The pre-session demo asks players to check their mental and emotional readiness, daily session count, deposit amount, and cooling period. It also checks the planned game limits and asks players to acknowledge the stop-loss and stop-win rules:
 
 - Maximum 2 sessions on weekdays and 4 on weekends.

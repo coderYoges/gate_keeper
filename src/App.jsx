@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { PLAYER_IDS, STEP_LABELS } from './constants'
 import { DailyLimitsStep } from './components/DailyLimitsStep'
+import { FailureModal } from './components/FailureModal'
 import { GamePlanStep } from './components/GamePlanStep'
 import { ReadinessStep } from './components/ReadinessStep'
 import { ReviewStep } from './components/ReviewStep'
 import { SessionSummary } from './components/SessionSummary'
+import { SuccessModal } from './components/SuccessModal'
 import { StepProgress } from './components/StepProgress'
 import { GlobalStyles } from './styles/GlobalStyles'
 import {
@@ -388,6 +390,8 @@ export default function App() {
   const [errors, setErrors] = useState({})
   const [lastPlayed, setLastPlayed] = useState({ timestamp: null })
   const [outcome, setOutcome] = useState(null)
+  const [failureMessage, setFailureMessage] = useState(null)
+  const [successModalOpen, setSuccessModalOpen] = useState(false)
   const dailyLimit = getDailyLimit()
   const cooldownStatus = getCooldownStatus(lastPlayed)
 
@@ -402,6 +406,7 @@ export default function App() {
     setValues((current) => ({ ...current, [name]: nextValue }))
     setErrors({})
     setOutcome(null)
+    setSuccessModalOpen(false)
 
     if (name === 'playerId') {
       setLastPlayed(getLastPlayed(value))
@@ -417,8 +422,22 @@ export default function App() {
     return error
   }
 
+  function resetForm() {
+    setValues(initialValues)
+    setCurrentStep(0)
+    setErrors({})
+    setLastPlayed({ timestamp: null })
+    setOutcome(null)
+    setFailureMessage(null)
+    setSuccessModalOpen(false)
+  }
+
   function advance() {
-    if (validateCurrentStep(currentStep)) return
+    const error = validateCurrentStep(currentStep)
+    if (error) {
+      setFailureMessage(error.message)
+      return
+    }
     setOutcome(null)
     setCurrentStep((step) => Math.min(step + 1, STEP_LABELS.length - 1))
   }
@@ -431,12 +450,10 @@ export default function App() {
       return
     }
 
-    for (let step = 0; step < STEP_LABELS.length; step += 1) {
-      const error = validateCurrentStep(step)
-      if (error) {
-        setCurrentStep(step)
-        return
-      }
+    const error = validateCurrentStep(currentStep)
+    if (error) {
+      setFailureMessage(error.message)
+      return
     }
 
     const timestamp = Date.now()
@@ -452,10 +469,12 @@ export default function App() {
       type: 'success',
       message: 'The demo session is recorded and its last-played time is saved in this browser. This is not connected to a real game.',
     })
+    setSuccessModalOpen(true)
   }
 
   function goBack() {
     setOutcome(null)
+    setSuccessModalOpen(false)
     setErrors({})
     setCurrentStep((step) => Math.max(step - 1, 0))
   }
@@ -463,6 +482,7 @@ export default function App() {
   function navigateTo(step) {
     if (step >= currentStep) return
     setOutcome(null)
+    setSuccessModalOpen(false)
     setErrors({})
     setCurrentStep(step)
   }
@@ -471,12 +491,22 @@ export default function App() {
     <ReadinessStep key="readiness" playerIds={PLAYER_IDS} values={values} errors={errors} onChange={handleChange} />,
     <DailyLimitsStep key="limits" values={values} errors={errors} dailyLimit={dailyLimit} cooldownStatus={cooldownStatus} onChange={handleChange} />,
     <GamePlanStep key="game-plan" values={values} errors={errors} onChange={handleChange} />,
-    <ReviewStep key="review" values={values} errors={errors} outcome={outcome} cooldownStatus={cooldownStatus} onChange={handleChange} />,
+    <ReviewStep key="review" values={values} outcome={outcome} cooldownStatus={cooldownStatus} />,
   ][currentStep]
 
   return (
     <>
       <GlobalStyles />
+      {failureMessage && (
+        <FailureModal
+          message={failureMessage}
+          onCancel={resetForm}
+          onOkay={resetForm}
+        />
+      )}
+      {successModalOpen && outcome?.type === 'success' && (
+        <SuccessModal message={outcome.message} onOkay={() => setSuccessModalOpen(false)} />
+      )}
       <Shell id="top">
         <Topbar>
           <Brand href="#top" aria-label="Gatekeeper home">
