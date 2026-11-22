@@ -148,7 +148,10 @@ const Topbar = styled.header`
   border-bottom: 1px solid #26332c;
 
   @media (max-width: 600px) {
-    min-height: 68px;
+    min-height: 0;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 12px 0;
   }
 `
 
@@ -204,6 +207,8 @@ const TopbarStatus = styled.div`
   letter-spacing: 1.05px;
 
   @media (max-width: 600px) {
+    order: 2;
+    margin-left: auto;
     font-size: 8px;
     letter-spacing: 0.6px;
   }
@@ -228,7 +233,12 @@ const TopbarLinks = styled.nav`
 
   @media (max-width: 600px) {
     order: 3;
-    width: 100%;
+    flex: 0 0 100%;
+
+    a {
+      width: 100%;
+      justify-content: center;
+    }
   }
 `
 

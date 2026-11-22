@@ -210,7 +210,8 @@ const TableFrame = styled.div`
 const DataTable = styled.table`
   width: 100%;
   min-width: 900px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 8px;
   text-align: left;
 
   th,
@@ -238,6 +239,14 @@ const DataTable = styled.table`
     white-space: pre-wrap;
   }
 
+  tbody tr:nth-child(odd) {
+    background: #17211b;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #1c2921;
+  }
+
   tr:last-child td {
     border-bottom: 0;
   }
@@ -257,7 +266,12 @@ const DataTable = styled.table`
     tr {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      border-bottom: 1px solid #26332c;
+      margin-bottom: 8px;
+      border-radius: 8px;
+    }
+
+    tr:last-child {
+      margin-bottom: 0;
     }
 
     td {
@@ -428,7 +442,6 @@ export function SessionDataPage({ user, playerIds }) {
         <Heading>
           <div>
             <h1>Transfer history</h1>
-            <p>Session records saved to the signed-in account: {user.email || user.uid}</p>
           </div>
           <RefreshButton
             type="button"

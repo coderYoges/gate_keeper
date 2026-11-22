@@ -78,6 +78,7 @@ export function ReadinessStep({
                 <strong>Are you playing in accordance with your profile?</strong>
                 <small>Device: {selectedPlayer.deviceName}</small>
                 <small>Location: {selectedPlayer.location}</small>
+                <small>Email: {selectedPlayer.email}</small>
               </span>
             </ChoiceCard>
             {errors.playerDetailsConfirmed && <ErrorMessage role="alert">{errors.playerDetailsConfirmed}</ErrorMessage>}
