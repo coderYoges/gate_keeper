@@ -6,7 +6,7 @@ import {
   PanelTitle,
   ErrorMessage,
 } from './FormPrimitives'
-import { PLAYER_IDS, SLOT_STAKE_AMOUNTS_BY_GAME } from '../constants'
+import { SLOT_STAKE_AMOUNTS_BY_GAME } from '../constants'
 import { getTotalReturnedAmount } from '../utils/sessionCalculations'
 
 const ReviewList = styled.dl`
@@ -128,8 +128,8 @@ const ReviewContinueButton = styled.button`
   }
 `
 
-export function ReviewStep({ values, onChange, outcome, onContinue, continueDisabled, saving, saveError }) {
-  const player = PLAYER_IDS.find((item) => item.playerId === values.playerId)
+export function ReviewStep({ playerIds, values, onChange, outcome, onContinue, continueDisabled, saving, saveError }) {
+  const player = playerIds.find((item) => item.playerId === values.playerId)
   const amountReturned = getTotalReturnedAmount(values.completedGames || [])
   const maximumAgentReturn = amountReturned * 0.5
   const replenishedAgentAmount = values.replenishedAgentAmount === ''

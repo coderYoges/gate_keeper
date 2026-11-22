@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { PLAYER_IDS } from '../constants'
 import { getSessionRecords } from '../firebase'
 
 const Page = styled.main`
@@ -313,10 +312,10 @@ function getTodayDateInputValue() {
   return getLocalDateInputValue(new Date())
 }
 
-function getUserName(record) {
+function getUserName(record, playerIds) {
   return record.userName
     || record.playerName
-    || PLAYER_IDS.find((player) => player.playerId === record.playerId)?.playerName
+    || playerIds.find((player) => player.playerId === record.playerId)?.playerName
     || record.playerId
     || '—'
 }
@@ -372,7 +371,7 @@ function getReadErrorMessage(error) {
   return 'Could not retrieve saved session data. Check your connection and Firebase setup, then try again.'
 }
 
-export function SessionDataPage({ user }) {
+export function SessionDataPage({ user, playerIds }) {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -517,7 +516,7 @@ export function SessionDataPage({ user }) {
                     const rating = getWithdrawalRating(record)
                     return (
                       <tr key={record.sessionId}>
-                        <td data-label="User name">{getUserName(record)}</td>
+                        <td data-label="User name">{getUserName(record, playerIds)}</td>
                         <td data-label="Session count">{record.sessionNumber ?? '—'}</td>
                         <td data-label="Time">{formatTime(record.createdAt)}</td>
                         <td data-label="Deposited">{formatAmount(record.depositAmount)}</td>

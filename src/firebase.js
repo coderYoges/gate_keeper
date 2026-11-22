@@ -32,6 +32,23 @@ export const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(fireb
 export const auth = getAuth(firebaseApp)
 export const db = getFirestore(firebaseApp)
 
+export async function getGamers(userId) {
+  if (auth.currentUser?.uid !== userId) {
+    const error = new Error('The active Firebase user does not match the gamer profile reader.')
+    error.code = 'auth/user-mismatch'
+    throw error
+  }
+
+  const snapshot = await getDocs(collection(db, 'gamers'))
+  return snapshot.docs.map((gamer) => {
+    const profile = gamer.data()
+    return {
+      ...profile,
+      playerId: String(profile.playerId ?? gamer.id),
+    }
+  })
+}
+
 export async function saveSessionRecord(userId, sessionRecord) {
   if (auth.currentUser?.uid !== userId) {
     const error = new Error('The active Firebase user does not match the session owner.')

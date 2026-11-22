@@ -1,7 +1,6 @@
 import {
   DAILY_SESSION_LIMITS,
   MAX_SLOT_GAMES_PER_SESSION,
-  PLAYER_IDS,
   SESSION_RULES,
   getSlotPlayStages,
 } from '../constants.js'
@@ -106,9 +105,9 @@ export function getSessionStopReason(completedGames, depositAmount) {
   return null
 }
 
-export function validateStep(step, values, dailyLimit) {
+export function validateStep(step, values, dailyLimit, playerIds = []) {
   if (step === 0) {
-    if (!PLAYER_IDS.some((player) => player.playerId === values.playerId)) {
+    if (!playerIds.some((player) => player.playerId === values.playerId)) {
       return { field: 'playerId', message: 'Select a player from the list.' }
     }
     if (!values.playerDetailsConfirmed) {

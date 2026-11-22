@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { onAuthStateChanged } from 'firebase/auth'
-import { PLAYER_IDS, getSlotPlayStages, STEP_LABELS } from './constants'
+import { getSlotPlayStages, STEP_LABELS } from './constants'
 import { DailyLimitsStep } from './components/DailyLimitsStep'
 import { FailureModal } from './components/FailureModal'
 import { FirebaseGoogleSignIn } from './components/FirebaseGoogleSignIn'
@@ -13,7 +13,7 @@ import { SessionDataPage } from './components/SessionDataPage'
 import { SuccessModal } from './components/SuccessModal'
 import { StepProgress } from './components/StepProgress'
 import { GlobalStyles } from './styles/GlobalStyles'
-import { auth, getSessionRecords, saveSessionRecord } from './firebase'
+import { auth, getGamers, getSessionRecords, saveSessionRecord } from './firebase'
 import {
   getDailyLimit,
   getPlayerSessionStatus,
@@ -497,8 +497,8 @@ const FooterDot = styled.span`
   color: #bac3b8;
 `
 
-function getStepError(step, values, dailyLimit) {
-  return validateStep(step, values, dailyLimit)
+function getStepError(step, values, dailyLimit, playerIds) {
+  return validateStep(step, values, dailyLimit, playerIds)
 }
 
 function getSessionHistoryErrorMessage(error) {
@@ -514,6 +514,10 @@ export default function App() {
   const [firebaseUser, setFirebaseUser] = useState(null)
   const [authReady, setAuthReady] = useState(false)
   const [authStateError, setAuthStateError] = useState('')
+  const [playerIds, setPlayerIds] = useState([])
+  const [playersLoading, setPlayersLoading] = useState(false)
+  const [playersError, setPlayersError] = useState('')
+  const [playersRefreshVersion, setPlayersRefreshVersion] = useState(0)
   const [sessionRecords, setSessionRecords] = useState([])
   const [sessionHistoryLoading, setSessionHistoryLoading] = useState(false)
   const [sessionHistoryError, setSessionHistoryError] = useState('')
@@ -556,6 +560,42 @@ export default function App() {
     const timerId = window.setInterval(() => setCurrentTime(new Date()), 30000)
     return () => window.clearInterval(timerId)
   }, [])
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      setPlayerIds([])
+      setPlayersLoading(false)
+      setPlayersError('')
+      return undefined
+    }
+
+    let active = true
+    setPlayerIds([])
+    setPlayersLoading(true)
+    setPlayersError('')
+
+    getGamers(firebaseUser.uid)
+      .then((gamers) => {
+        if (!active) return
+        setPlayerIds(gamers)
+        if (gamers.length === 0) setPlayersError('No player profiles were found in the Firestore gamers collection.')
+      })
+      .catch((error) => {
+        console.error('Firebase gamer profiles could not be loaded.', error)
+        if (active) {
+          setPlayersError(error?.code === 'permission-denied'
+            ? 'Firestore denied access to gamer profiles. Publish the authenticated-read rule for gamers.'
+            : 'Could not load player profiles from Firestore. Check the connection and try again.')
+        }
+      })
+      .finally(() => {
+        if (active) setPlayersLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [firebaseUser, playersRefreshVersion])
 
   useEffect(() => {
     if (!firebaseUser || !values.playerId) {
@@ -843,6 +883,15 @@ export default function App() {
   }
 
   function validateCurrentStep(step) {
+    if (step === 0 && (playersLoading || playersError)) {
+      const error = {
+        field: 'playerId',
+        message: playersLoading ? 'Wait while player profiles are loaded.' : playersError,
+      }
+      setErrors({ [error.field]: error.message })
+      return error
+    }
+
     if (step === 1 && (sessionHistoryLoading || sessionHistoryError)) {
       const error = {
         field: 'sessionsToday',
@@ -861,7 +910,7 @@ export default function App() {
       sessionsToday: String(currentStatus.currentSessionNumber),
       cooldownConfirmed: currentStatus.cooldownConfirmed,
     }
-    const error = getStepError(step, validationValues, getDailyLimit(now))
+    const error = getStepError(step, validationValues, getDailyLimit(now), playerIds)
     setErrors(error ? { [error.field]: error.message } : {})
     return error
   }
@@ -1024,7 +1073,16 @@ export default function App() {
   }
 
   const stepContent = [
-    <ReadinessStep key="readiness" playerIds={PLAYER_IDS} values={values} errors={errors} onChange={handleChange} />,
+    <ReadinessStep
+      key="readiness"
+      playerIds={playerIds}
+      playersLoading={playersLoading}
+      playersError={playersError}
+      onRetryPlayers={() => setPlayersRefreshVersion((version) => version + 1)}
+      values={values}
+      errors={errors}
+      onChange={handleChange}
+    />,
     <DailyLimitsStep
       key="limits"
       values={sessionValues}
@@ -1053,6 +1111,7 @@ export default function App() {
     />,
     <ReviewStep
       key="review"
+      playerIds={playerIds}
       values={sessionValues}
       onChange={handleChange}
       outcome={outcome}
@@ -1076,7 +1135,7 @@ export default function App() {
     return (
       <>
         <GlobalStyles />
-        <SessionDataPage user={firebaseUser} />
+        <SessionDataPage user={firebaseUser} playerIds={playerIds} />
       </>
     )
   }
@@ -1099,7 +1158,7 @@ export default function App() {
       )}
       {successModalOpen && outcome?.type === 'success' && (
         <SuccessModal
-          playerName={PLAYER_IDS.find((player) => player.playerId === values.playerId)?.playerName || 'there'}
+          playerName={playerIds.find((player) => player.playerId === values.playerId)?.playerName || 'there'}
           message={outcome.message}
           onOkay={() => window.location.reload()}
         />

@@ -1,3 +1,4 @@
+import styled from 'styled-components'
 import {
   Checkbox,
   ChoiceCard,
@@ -16,7 +17,26 @@ import {
   SelectInput,
 } from './FormPrimitives'
 
-export function ReadinessStep({ playerIds, values, errors, onChange }) {
+const RetryButton = styled.button`
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #c8f169;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+`
+
+export function ReadinessStep({
+  playerIds,
+  playersLoading,
+  playersError,
+  onRetryPlayers,
+  values,
+  errors,
+  onChange,
+}) {
   const selectedPlayer = playerIds.find((player) => player.playerId === values.playerId)
 
   return (
@@ -29,15 +49,21 @@ export function ReadinessStep({ playerIds, values, errors, onChange }) {
       <FieldGrid>
         <Field $wide>
           <FieldLabel htmlFor="player-id">Who is Playing? <RequiredTag>REQUIRED</RequiredTag></FieldLabel>
-          <SelectInput id="player-id" name="playerId" value={values.playerId} onChange={onChange} required aria-invalid={Boolean(errors.playerId)}>
+          <SelectInput id="player-id" name="playerId" value={values.playerId} onChange={onChange} required disabled={playersLoading || Boolean(playersError)} aria-invalid={Boolean(errors.playerId)}>
             <option value="">Select a player</option>
             {playerIds.map((player) => (
               <option key={player.playerId} value={player.playerId}>
-                {player.playerName}
+                {player.playerName || player.playerId}
               </option>
             ))}
           </SelectInput>
-          {errors.playerId ? <ErrorMessage>{errors.playerId}</ErrorMessage> : <Hint>Select your profile by name, player ID, location, and device.</Hint>}
+          {playersLoading
+            ? <Hint role="status">Loading player profiles…</Hint>
+            : playersError
+              ? <ErrorMessage role="alert">{playersError} <RetryButton type="button" onClick={onRetryPlayers}>Retry</RetryButton></ErrorMessage>
+              : errors.playerId
+                ? <ErrorMessage>{errors.playerId}</ErrorMessage>
+                : <Hint>Select your profile by name, player ID, location, and device.</Hint>}
         </Field>
         {selectedPlayer && (
           <Field $wide>

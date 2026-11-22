@@ -42,6 +42,11 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
     }
 
+    match /gamers/{gamerId} {
+      allow get, list: if request.auth != null;
+      allow write: if false;
+    }
+
     match /game-users/{sessionId} {
       allow get, list: if ownsUser(resource.data.ownerUid);
       allow create: if ownsUser(request.resource.data.ownerUid)
