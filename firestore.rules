@@ -11,14 +11,9 @@ service cloud.firestore {
           'ownerUid',
           'playerId',
           'sessionNumber',
-          'existingBalance',
           'depositAmount',
           'amountReturned',
-          'balanceInGameAccount',
           'withdrawnAmount',
-          'cooldownConfirmed',
-          'mobileDataConfirmed',
-          'differentSimConfirmed',
           'games',
           'createdAt'
         ])
@@ -26,34 +21,22 @@ service cloud.firestore {
           'ownerUid',
           'playerId',
           'sessionNumber',
-          'existingBalance',
           'depositAmount',
           'amountReturned',
-          'balanceInGameAccount',
           'withdrawnAmount',
-          'cooldownConfirmed',
-          'mobileDataConfirmed',
-          'differentSimConfirmed',
           'games',
           'createdAt'
         ])
         && request.resource.data.ownerUid is string
         && request.resource.data.playerId is string
         && request.resource.data.sessionNumber is number
-        && request.resource.data.existingBalance is bool
         && request.resource.data.depositAmount is number
         && request.resource.data.depositAmount > 0
         && request.resource.data.depositAmount <= 15000
         && request.resource.data.amountReturned is number
         && request.resource.data.amountReturned >= 0
-        && request.resource.data.balanceInGameAccount is number
-        && request.resource.data.balanceInGameAccount == request.resource.data.depositAmount - request.resource.data.amountReturned
         && request.resource.data.withdrawnAmount is number
         && request.resource.data.withdrawnAmount >= 0
-        && (!request.resource.data.existingBalance || request.resource.data.depositAmount >= 300)
-        && request.resource.data.cooldownConfirmed == true
-        && request.resource.data.mobileDataConfirmed == true
-        && request.resource.data.differentSimConfirmed == true
         && request.resource.data.games is list
         && request.resource.data.games.size() > 0
         && request.resource.data.createdAt is timestamp;

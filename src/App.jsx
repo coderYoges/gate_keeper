@@ -927,7 +927,6 @@ export default function App() {
     }
 
     const amountReturned = getTotalReturnedAmount(values.completedGames || [])
-    const balanceInGameAccount = Number(values.depositAmount) - amountReturned
     const maxAgentAmount = amountReturned * 0.5
     const replenishedAgentAmount = values.replenishedAgentAmount === ''
       ? maxAgentAmount
@@ -964,14 +963,9 @@ export default function App() {
         sessionId: sessionIdRef.current,
         playerId: values.playerId,
         sessionNumber: latestStatus.currentSessionNumber,
-        existingBalance: Boolean(values.existingBalance),
         depositAmount: Number(values.depositAmount),
         amountReturned,
-        balanceInGameAccount,
         withdrawnAmount,
-        cooldownConfirmed: latestStatus.cooldownConfirmed,
-        mobileDataConfirmed: Boolean(values.mobileDataConfirmed),
-        differentSimConfirmed: Boolean(values.differentSimConfirmed),
         games: values.completedGames.map((game) => ({
           gameType: game.gameType,
           gameName: game.gameName,
